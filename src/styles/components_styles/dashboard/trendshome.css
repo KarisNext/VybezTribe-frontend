@@ -1,0 +1,412 @@
+/* Fallback Component Styles */
+.component-error,
+.notifications-fallback,
+.profile-fallback,
+.search-fallback,
+.reels-fallback,
+.trends-fallback,
+.metrics-fallback {
+  padding: 20px;
+  text-align: center;
+  border: 2px dashed #ccc;
+  border-radius: 10px;
+  background: #f9f9f9;
+  color: #666;
+}
+
+.component-error {
+  background: #ffe6e6;
+  border-color: #ff9999;
+  color: #cc0000;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  position: relative;
+}
+
+.loading-spinner::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Floating Buttons Reorganization */
+.floating-buttons-container {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 1000;
+}
+
+/* Trends Floating Card */
+.floating-trends-btn {
+  background: linear-gradient(135deg, #ff0000, #ffffff);
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid #ffffff;
+}
+
+.floating-trends-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 0, 0, 0.4);
+}
+
+.floating-trends-icon {
+  font-size: 20px;
+  animation: pulse 2s infinite;
+}
+
+.floating-trends-text {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Connects Button - Middle Right Position */
+.floating-connects-btn {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 60px; /* Position more to the right */
+}
+
+.floating-connects-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Conversations Button */
+.floating-conversations-btn {
+  background: linear-gradient(135deg, #2196F3, #1976D2);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-conversations-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+/* Messages Button - Below Connects */
+.floating-chat-btn {
+  background: linear-gradient(135deg, #FF5722, #E64A19);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.floating-chat-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+}
+
+/* Trends Floating Card Overlay */
+.trends-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.trends-floating-card {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 3px solid #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.trends-card-header {
+  background: linear-gradient(135deg, #ff0000, #cc0000);
+  color: #ffffff;
+  padding: 20px;
+  border-radius: 17px 17px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #ffffff;
+}
+
+.trends-card-header h3 {
+  margin: 0;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.trends-close-btn {
+  background: none;
+  border: none;
+  color: #ffffff !important;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.trends-close-btn:hover {
+  transform: scale(1.2);
+}
+
+.trends-card-content {
+  padding: 20px;
+  color: #ff0000;
+}
+
+/* Account Rating Display */
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.rating-icon {
+  font-size: 18px;
+}
+
+.rating-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #FFD700;
+}
+
+.rating-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.view-metrics-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-metrics-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* Popup Overlays */
+.notifications-overlay,
+.profile-overlay,
+.search-overlay,
+.metrics-overlay,
+.conversations-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* Popup Containers */
+.notifications-container,
+.profile-container,
+.search-container,
+.metrics-container,
+.conversations-container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Popup Headers */
+.profile-popup-header,
+.search-popup-header,
+.metrics-popup-header,
+.conversations-popup-header {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  padding: 20px;
+  border-radius: 17px 17px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-popup-header h3,
+.search-popup-header h3,
+.metrics-popup-header h3,
+.conversations-popup-header h3 {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Close Buttons */
+.profile-close-btn,
+.search-close-btn,
+.metrics-close-btn,
+.conversations-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.profile-close-btn:hover,
+.search-close-btn:hover,
+.metrics-close-btn:hover,
+.conversations-close-btn:hover {
+  transform: scale(1.2);
+}
+
+/* Popup Content */
+.profile-popup-content,
+.search-popup-content,
+.metrics-popup-content,
+.conversations-popup-content {
+  padding: 20px;
+}
+
+/* Logout Button Container */
+.logout-btn-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .floating-buttons-container {
+    right: 15px;
+    bottom: 80px; /* Account for mobile chat bar */
+    gap: 10px;
+  }
+  
+  .floating-trends-btn,
+  .floating-connects-btn,
+  .floating-conversations-btn,
+  .floating-chat-btn {
+    padding: 10px 14px;
+    border-radius: 20px;
+  }
+  
+  .floating-trends-text,
+  .floating-connects-text,
+  .floating-conversations-text,
+  .floating-chat-text {
+    display: none; /* Hide text on mobile, show only icons */
+  }
+  
+  .trends-floating-card {
+    margin: 20px;
+    max-width: calc(100vw - 40px);
+  }
+  
+  .notifications-container,
+  .profile-container,
+  .search-container,
+  .metrics-container,
+  .conversations-container {
+    margin: 20px;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 40px);
+  }
+}
+
+/* Animation for pulse effect */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Theme-based styling */
+[data-theme="dark"] .trends-floating-card {
+  background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+  border-color: #00ff00;
+}
+
+[data-theme="dark"] .trends-card-content {
+  color: #00ff00;
+}
+
+[data-theme="white"] .trends-floating-card {
+  background: linear-gradient(135deg, #ffffff, #f5f5f5);
+  border-color: #424242;
+}
+
+[data-theme="white"] .trends-card-content {
+  color: #424242;
+}

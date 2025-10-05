@@ -1,0 +1,890 @@
+/* Trends.css - Beautiful Twitter-inspired Trends Component */
+
+/* Container and Layout */
+.trending-section {
+  width: 50%;
+  max-width: 350px;
+  min-width: 300px;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px var(--shadow-color);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trending-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--accent-color) 0%, 
+    var(--success-color) 25%, 
+    var(--warning-color) 50%, 
+    var(--info-color) 75%, 
+    var(--danger-color) 100%);
+  animation: gradientShift 3s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+.trending-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px var(--shadow-color);
+}
+
+/* Header */
+.trending-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+.trending-title h4 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 1px 2px var(--shadow-color);
+}
+
+.trending-title h4::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: var(--accent-color);
+  border-radius: 2px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.7; transform: scaleY(0.8); }
+}
+
+.trending-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.trending-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.category-filter {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-filter:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.category-filter:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.trend-indicators {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.trend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-color);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trend-dot:hover {
+  background: var(--accent-color);
+  transform: scale(1.2);
+}
+
+.trend-dot.active {
+  background: var(--accent-color);
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+/* Desktop Trends List */
+.trending-list {
+  padding: 0;
+  background: var(--bg-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trending-list.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.trending-list.hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.trending-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.4s ease-out forwards;
+  animation-delay: calc(var(--trend-index) * 0.1s);
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trending-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.trending-item:hover {
+  background: var(--bg-secondary);
+  transform: translateX(8px);
+}
+
+.trending-item:hover::before {
+  background: var(--accent-color);
+}
+
+.trending-item.hovered {
+  background: var(--bg-secondary);
+  box-shadow: inset 4px 0 0 var(--accent-color);
+}
+
+.trending-item:last-child {
+  border-bottom: none;
+}
+
+.trend-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 12px;
+}
+
+.trend-emoji {
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.trend-emoji::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.trending-item:hover .trend-emoji::after {
+  opacity: 1;
+  animation: shimmer 0.6s ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.trend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.trend-topic {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.trending-item:hover .trend-topic {
+  color: var(--accent-color);
+}
+
+.trend-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.trend-description {
+  font-size: 12px;
+  color: var(--text-accent);
+  margin-top: 4px;
+  font-style: italic;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trend-growth {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.trend-growth.positive {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.trend-growth.negative {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.trending-item:hover .trend-growth {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.growth-arrow {
+  font-size: 10px;
+  animation: bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.trend-action {
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.trending-item:hover .trend-action {
+  opacity: 1;
+}
+
+.trend-follow-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-color);
+  background: transparent;
+  color: var(--accent-color);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trend-follow-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Mobile Trending Ribbon */
+.mobile-trending-ribbon {
+  display: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px;
+}
+
+.mobile-trending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mobile-trending-header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobile-expand-trends {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.mobile-expand-trends:hover {
+  background: var(--bg-tertiary);
+  color: var(--accent-color);
+}
+
+.mobile-trending-content {
+  padding: 8px 0;
+}
+
+.mobile-trends-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 0 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-trends-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-trend-item {
+  display: flex;
+  align-items: center;
+  min-width: 200px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+}
+
+.mobile-trend-item:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.mobile-trend-emoji {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.mobile-trend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-trend-topic {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-trend-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobile-trend-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.mobile-trend-growth {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.mobile-trend-growth.positive {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+}
+
+.mobile-trend-growth.negative {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.mobile-trend-follow {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-color);
+  background: transparent;
+  color: var(--accent-color);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.mobile-trend-follow:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
+/* Loading State */
+.trends-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--bg-primary);
+}
+
+.trends-loading-spinner {
+  font-size: 24px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 8px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.trends-loading-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .trending-section {
+    width: 95%;
+    max-width: none;
+    margin: 8px auto;
+  }
+  
+  .desktop-trends {
+    display: none;
+  }
+  
+  .mobile-trending-ribbon {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: block !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .trending-section {
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .mobile-trend-item {
+    min-width: 180px;
+  }
+}
+
+/* Theme-specific enhancements */
+[data-theme="dark"] .trending-section::before {
+  background: linear-gradient(90deg, 
+    var(--accent-color) 0%, 
+    #00ff00 25%, 
+    #32cd32 50%, 
+    #90ee90 75%, 
+    var(--accent-color) 100%);
+}
+
+[data-theme="dark"] .trend-emoji {
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
+}
+
+[data-theme="dark"] .trending-item:hover {
+  box-shadow: inset 4px 0 0 var(--accent-color), 0 0 15px rgba(0, 255, 0, 0.1);
+}
+
+[data-theme="african"] .trending-section::before {
+  background: var(--gradient-tertiary);
+}
+
+[data-theme="african"] .trend-emoji {
+  background: var(--gradient-primary);
+  color: var(--kenyan-white);
+}
+
+[data-theme="african"] .trending-item:hover {
+  box-shadow: inset 4px 0 0 var(--african-gold), 0 0 15px var(--shadow-color);
+}
+
+[data-theme="african"] .trend-growth.positive {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--african-gold);
+  border-color: var(--african-gold);
+}
+
+/* Hot burning features */
+.trending-section.hot {
+  position: relative;
+  overflow: visible;
+}
+
+.trending-section.hot::after {
+  content: '🔥';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 20px;
+  animation: fire 1s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 10px rgba(255, 100, 0, 0.5));
+}
+
+@keyframes fire {
+  0% { transform: scale(1) rotate(-5deg); }
+  100% { transform: scale(1.2) rotate(5deg); }
+}
+
+.trending-item.viral {
+  background: linear-gradient(90deg, 
+    rgba(255, 100, 0, 0.1) 0%, 
+    transparent 50%, 
+    rgba(255, 100, 0, 0.1) 100%);
+  animation: viralPulse 2s ease-in-out infinite;
+}
+
+@keyframes viralPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 100, 0, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(255, 100, 0, 0.4); }
+}
+
+/* Additional Twitter-inspired features */
+.trend-rank {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+.viral-indicator {
+  font-size: 12px;
+  margin-left: 4px;
+  animation: fire 1s ease-in-out infinite alternate;
+}
+
+.mobile-trend-rank {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+
+.mobile-viral-indicator {
+  font-size: 10px;
+  margin-left: 3px;
+  animation: fire 1s ease-in-out infinite alternate;
+}
+
+.trend-follow-btn.following {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.mobile-trend-follow.following {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.trend-growth.viral {
+  background: linear-gradient(45deg, rgba(255, 100, 0, 0.1), rgba(255, 215, 0, 0.1));
+  color: #ff6400;
+  border: 1px solid rgba(255, 100, 0, 0.3);
+  animation: viralGlow 2s ease-in-out infinite;
+}
+
+@keyframes viralGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 100, 0, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(255, 100, 0, 0.4); }
+}
+
+.trend-growth.moderate {
+  background: rgba(23, 162, 184, 0.1);
+  color: var(--info-color);
+  border: 1px solid rgba(23, 162, 184, 0.2);
+}
+
+.mobile-trend-growth.viral {
+  background: linear-gradient(45deg, rgba(255, 100, 0, 0.1), rgba(255, 215, 0, 0.1));
+  color: #ff6400;
+}
+
+.mobile-trend-growth.moderate {
+  background: rgba(23, 162, 184, 0.1);
+  color: var(--info-color);
+}
+
+.mobile-trend-item.viral {
+  background: linear-gradient(90deg, 
+    rgba(255, 100, 0, 0.05) 0%, 
+    var(--bg-secondary) 50%, 
+    rgba(255, 100, 0, 0.05) 100%);
+  border: 1px solid rgba(255, 100, 0, 0.1);
+}
+
+/* Trends footer */
+.trends-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.show-more-trends {
+  width: 100%;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--accent-color);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.show-more-trends:hover {
+  background: var(--accent-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+/* Enhanced responsive design */
+@media (max-width: 1024px) {
+  .trending-section {
+    width: 60%;
+  }
+}
+
+@media (max-width: 768px) {
+  .trending-section {
+    width: 90%;
+  }
+  
+  .trending-header {
+    padding: 12px 16px 10px;
+  }
+  
+  .trending-title h4 {
+    font-size: 18px;
+  }
+  
+  .trending-controls {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .category-filter {
+    width: 100%;
+  }
+  
+  .trend-indicators {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-trend-item {
+    min-width: 160px;
+    padding: 10px;
+  }
+  
+  .mobile-trend-topic {
+    font-size: 13px;
+  }
+  
+  .mobile-trend-count {
+    font-size: 10px;
+  }
+}
+
+/* Dark theme specific viral effects */
+[data-theme="dark"] .trending-item.viral {
+  background: linear-gradient(90deg, 
+    rgba(0, 255, 0, 0.1) 0%, 
+    transparent 50%, 
+    rgba(0, 255, 0, 0.1) 100%);
+  border-left: 3px solid var(--accent-color);
+}
+
+[data-theme="dark"] .trend-growth.viral {
+  background: linear-gradient(45deg, rgba(0, 255, 0, 0.1), rgba(50, 205, 50, 0.1));
+  color: var(--accent-color);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+/* African theme viral effects */
+[data-theme="african"] .trending-item.viral {
+  background: linear-gradient(90deg, 
+    rgba(255, 215, 0, 0.1) 0%, 
+    transparent 50%, 
+    rgba(255, 215, 0, 0.1) 100%);
+  border-left: 3px solid var(--african-gold);
+}
+
+[data-theme="african"] .trend-growth.viral {
+  background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 107, 53, 0.1));
+  color: var(--african-gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+/* Advanced hover effects */
+.trending-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.05), 
+    transparent);
+  transition: left 0.5s ease;
+}
+
+.trending-item:hover::after {
+  left: 100%;
+}
+
+[data-theme="dark"] .trending-item::after {
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(0, 255, 0, 0.05), 
+    transparent);
+}
+
+[data-theme="african"] .trending-item::after {
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 215, 0, 0.05), 
+    transparent);
+}
+
+/* Performance optimizations */
+.trending-list,
+.mobile-trending-ribbon {
+  will-change: transform, opacity;
+}
+
+.trending-item {
+  will-change: transform;
+}
+
+/* Focus states for accessibility */
+.trend-follow-btn:focus,
+.mobile-trend-follow:focus,
+.show-more-trends:focus,
+.category-filter:focus,
+.trend-dot:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .trending-section {
+    border: 2px solid var(--text-primary);
+  }
+  
+  .trending-item {
+    border-bottom: 2px solid var(--border-color);
+  }
+  
+  .trend-follow-btn {
+    border: 2px solid var(--accent-color);
+  }
+}

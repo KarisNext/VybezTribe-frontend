@@ -1,0 +1,30 @@
+next.config
+node_modules
+public
+src/ where all my Next.js scripts are
+.env.local
+.env.production
+.gitignore
+next.config
+next-env.d
+package json file
+package-lock json
+Reame
+tsconfig
+Backend contains
+config / where db.js for connecting to postgre is
+middleware/ important authentication files for client and admin
+node_modules
+routes/ important and all my handlers are here
+scripts/ not important are usually scripts to configure database
+uploads / important image storages
+.env
+.env.development
+.env.production
+app.js/ important gateway from frontend to backend
+package json file
+pack-lock json file
+vybeztribe_complete.sql, just the POSTGRE downloaded sql
+
+Now I need to prepare what exactly to send to Github, that I will transfer to Render, 
+I have not been able to secure Render product packages, but I have seen an option of temporary use with a sub-domain, 
