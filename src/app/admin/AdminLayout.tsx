@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { SessionProvider } from '../../components/includes/Session';
+import { SessionProvider } from '../../components/includes/session';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
