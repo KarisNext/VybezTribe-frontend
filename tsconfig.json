@@ -27,10 +27,10 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
 
-    /* === Path & Alias Configuration === */
-    "baseUrl": "src",
+    /* === FIX: Path & Alias Configuration === */
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["./src/*"]
     },
 
     /* === Plugin & Type Declarations === */
