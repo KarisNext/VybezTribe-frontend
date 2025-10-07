@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    /* === Core TypeScript Settings === */
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -14,9 +15,8 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+
+    /* === Code Quality Options === */
     "removeComments": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
@@ -24,46 +24,31 @@
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
-    "allowUnusedLabels": false,
     "allowUnreachableCode": false,
-    "baseUrl": ".",
+    "allowUnusedLabels": false,
+
+    /* === Path & Alias Configuration === */
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
-      "@/styles/*": ["./src/styles/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/backend/*": ["../backend/*"],
-      "@/backend/lib/*": ["../backend/lib/*"]
+      "@/*": ["*"]
     },
+
+    /* === Plugin & Type Declarations === */
     "plugins": [
-      {
-        "name": "next"
-      }
+      { "name": "next" }
     ],
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["node", "react", "react-dom"]
   },
+
+  /* === Included Files === */
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/**/*",
-    "../backend/lib/**/*.ts",
-    "../backend/lib/**/*.tsx"
+    ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    ".next",
-    "out",
-    "backend/node_modules",
-    "backend/dist"
-  ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
-  }
+
+  /* === Excluded Files === */
+  "exclude": ["node_modules", "dist", ".next", "out"]
 }
