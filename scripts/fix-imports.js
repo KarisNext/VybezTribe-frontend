@@ -1,22 +1,20 @@
+
 #!/usr/bin/env node
 
 /**
- * Auto Import Fixer - Prebuild Script
- * This script runs before build and automatically fixes import casing issues
- * It scans all TypeScript/JavaScript files and corrects imports to match actual file names
+ * FRONTEND Import Fixer - Prebuild Script
+ * Fixes TypeScript/React component import casing issues only
  */
 
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Running Import Fixer...\n');
+console.log('🔧 Fixing Frontend TypeScript Imports...\n');
 
-// Configuration
 const SRC_DIR = path.join(__dirname, '..', 'src');
-const COMPONENTS_DIR = path.join(SRC_DIR, 'components');
 
-// Build a map of actual file names (case-sensitive)
-function buildFileMap(dir, map = {}) {
+// Build map of actual React component files
+function buildComponentMap(dir, map = {}) {
   if (!fs.existsSync(dir)) return map;
   
   const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -25,33 +23,36 @@ function buildFileMap(dir, map = {}) {
     const fullPath = path.join(dir, item.name);
     
     if (item.isDirectory()) {
-      buildFileMap(fullPath, map);
+      buildComponentMap(fullPath, map);
     } else if (item.isFile() && /\.(tsx|ts|jsx|js)$/.test(item.name)) {
+      // This is a React component or TypeScript file
       const relativePath = path.relative(SRC_DIR, fullPath);
       const withoutExt = relativePath.replace(/\.(tsx|ts|jsx|js)$/, '');
       const key = withoutExt.toLowerCase();
-      map[key] = withoutExt;
+      map[key] = withoutExt; // Store actual case
     }
   });
   
   return map;
 }
 
-// Fix imports in a file
-function fixImportsInFile(filePath, fileMap) {
+// Fix import statements in TypeScript/React files
+function fixImportsInFile(filePath, componentMap) {
+  if (!filePath.includes('.ts') && !filePath.includes('.js')) return false;
+  
   let content = fs.readFileSync(filePath, 'utf8');
   let modified = false;
   
-  // Match import statements with @ aliases
+  // Fix @/ alias imports (frontend components only)
   const importRegex = /from\s+['"]@\/([^'"]+)['"]/g;
   
   content = content.replace(importRegex, (match, importPath) => {
     const key = importPath.toLowerCase();
     
-    if (fileMap[key] && fileMap[key] !== importPath) {
-      console.log(`  ✓ Fixed: @/${importPath} → @/${fileMap[key]}`);
+    if (componentMap[key] && componentMap[key] !== importPath) {
+      console.log(`  ✓ Fixed import: @/${importPath} → @/${componentMap[key]}`);
       modified = true;
-      return `from '@/${fileMap[key]}'`;
+      return `from '@/${componentMap[key]}'`;
     }
     
     return match;
@@ -59,14 +60,13 @@ function fixImportsInFile(filePath, fileMap) {
   
   if (modified) {
     fs.writeFileSync(filePath, content, 'utf8');
-    return true;
   }
   
-  return false;
+  return modified;
 }
 
-// Scan and fix all files
-function scanAndFix(dir, fileMap) {
+// Scan and fix all TypeScript/React files
+function scanAndFixFiles(dir, componentMap) {
   if (!fs.existsSync(dir)) return 0;
   
   let fixedCount = 0;
@@ -76,12 +76,9 @@ function scanAndFix(dir, fileMap) {
     const fullPath = path.join(dir, item.name);
     
     if (item.isDirectory() && !item.name.startsWith('.')) {
-      fixedCount += scanAndFix(fullPath, fileMap);
+      fixedCount += scanAndFixFiles(fullPath, componentMap);
     } else if (item.isFile() && /\.(tsx|ts|jsx|js)$/.test(item.name)) {
-      const relativePath = path.relative(SRC_DIR, fullPath);
-      console.log(`📄 Checking: ${relativePath}`);
-      
-      if (fixImportsInFile(fullPath, fileMap)) {
+      if (fixImportsInFile(fullPath, componentMap)) {
         fixedCount++;
       }
     }
@@ -90,22 +87,22 @@ function scanAndFix(dir, fileMap) {
   return fixedCount;
 }
 
-// Main execution
+// Main execution - FRONTEND ONLY
 try {
-  console.log('📂 Building file map...');
-  const fileMap = buildFileMap(COMPONENTS_DIR);
-  console.log(`✓ Found ${Object.keys(fileMap).length} component files\n`);
+  console.log('📂 Scanning React components...');
+  const componentMap = buildComponentMap(SRC_DIR);
+  console.log(`✓ Found ${Object.keys(componentMap).length} component files\n`);
   
-  console.log('🔍 Scanning for import issues...\n');
-  const fixedCount = scanAndFix(SRC_DIR, fileMap);
+  console.log('🔍 Checking import statements...\n');
+  const fixedCount = scanAndFixFiles(SRC_DIR, componentMap);
   
-  console.log(`\n✅ Import fixer complete!`);
-  console.log(`   Files fixed: ${fixedCount}`);
-  console.log(`   Ready to build! 🚀\n`);
+  console.log(`\n✅ Frontend import fixer complete!`);
+  console.log(`   Fixed ${fixedCount} files with import casing issues`);
+  console.log(`   Ready for build! 🚀\n`);
   
   process.exit(0);
 } catch (error) {
-  console.error('\n❌ Error running import fixer:', error.message);
-  console.error('   Continuing with build anyway...\n');
-  process.exit(0); // Don't fail the build
+  console.error('\n❌ Import fixer error:', error.message);
+  console.log('   Continuing build...\n');
+  process.exit(0);
 }
