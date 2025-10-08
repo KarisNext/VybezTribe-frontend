@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * FRONTEND Import Fixer - Prebuild Script
  * Fixes TypeScript/React component import casing issues only
