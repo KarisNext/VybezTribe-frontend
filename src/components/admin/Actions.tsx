@@ -1,9 +1,7 @@
-// File: frontend/src/components/admin/Actions.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { useSession } from '@/components/includes/Session';
-import { toast } from 'react-toastify';
+import { useSession } from '@/components/includes/session';
 
 interface NewsItem {
   news_id: number;
@@ -53,6 +51,12 @@ const Actions: React.FC<ActionsProps> = ({
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState('');
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    if (typeof window !== 'undefined') {
+      alert(message);
+    }
+  };
+
   const handleBulkAction = async (action: string) => {
     if (!selectedPosts.length || !user) return;
 
@@ -76,13 +80,13 @@ const Actions: React.FC<ActionsProps> = ({
         onBulkAction(action, selectedPosts);
         setShowBulkModal(false);
         setSelectedAction('');
-        toast.success(`Successfully performed ${action} action.`);
+        showToast(`Successfully performed ${action} action.`, 'success');
       } else {
-        toast.error(`Failed to perform ${action} action.`);
+        showToast(`Failed to perform ${action} action.`, 'error');
       }
     } catch (error) {
       console.error('Error performing bulk action:', error);
-      toast.error('Error performing bulk action.');
+      showToast('Error performing bulk action.', 'error');
     } finally {
       setActionLoading(false);
     }
