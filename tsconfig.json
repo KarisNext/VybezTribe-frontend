@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     /* === Core TypeScript Settings === */
@@ -15,7 +16,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-
+    
     /* === Code Quality Options === */
     "removeComments": false,
     "noUnusedLocals": false,
@@ -26,13 +27,17 @@
     "noPropertyAccessFromIndexSignature": false,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-
-    /* === FIX: Path & Alias Configuration === */
+    
+    /* === FIXED: Path & Alias Configuration === */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/app/*": ["src/app/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/types/*": ["src/types/*"]
     },
-
+    
     /* === Plugin & Type Declarations === */
     "plugins": [
       { "name": "next" }
@@ -40,7 +45,7 @@
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["node", "react", "react-dom"]
   },
-
+  
   /* === Included Files === */
   "include": [
     "next-env.d.ts",
@@ -48,7 +53,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-
+  
   /* === Excluded Files === */
   "exclude": ["node_modules", "dist", ".next", "out"]
 }
