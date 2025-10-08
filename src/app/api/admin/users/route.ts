@@ -18,16 +18,20 @@ export async function GET(request: NextRequest) {
       csrfToken: request.headers.get('X-CSRF-Token') ? 'present' : 'missing'
     });
     
+    const headers: HeadersInit = {
+      'Cookie': request.headers.get('Cookie') || '',
+      'Content-Type': 'application/json',
+      'User-Agent': 'VybezTribe-Admin/1.0'
+    };
+    
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+    
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: {
-        'Cookie': request.headers.get('Cookie') || '',
-        'Content-Type': 'application/json',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-        ...(request.headers.get('X-CSRF-Token') && {
-          'X-CSRF-Token': request.headers.get('X-CSRF-Token')
-        })
-      },
+      headers,
       credentials: 'include'
     });
 
@@ -108,7 +112,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Validate required fields
     const { first_name, last_name, email, password, role } = body;
     if (!first_name?.trim() || !last_name?.trim() || !email?.trim() || !password?.trim() || !role?.trim()) {
       return NextResponse.json({ 
@@ -117,7 +120,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       return NextResponse.json({ 
@@ -126,7 +128,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate password length
     if (password.trim().length < 6) {
       return NextResponse.json({ 
         success: false, 
@@ -134,7 +135,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate role
     const validRoles = ['editor', 'moderator', 'admin', 'super_admin'];
     if (!validRoles.includes(role.trim())) {
       return NextResponse.json({ 
@@ -143,7 +143,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Clean the body data
     const cleanBody = {
       first_name: first_name.trim(),
       last_name: last_name.trim(),
@@ -153,14 +152,20 @@ export async function POST(request: NextRequest) {
       role: role.trim()
     };
 
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0'
+    };
+    
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('Cookie') || '',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-      },
+      headers,
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
@@ -201,7 +206,6 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     
-    // Validate required fields for update
     const { first_name, last_name, email, role } = body;
     if (!first_name?.trim() || !last_name?.trim() || !email?.trim() || !role?.trim()) {
       return NextResponse.json({ 
@@ -210,7 +214,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       return NextResponse.json({ 
@@ -219,7 +222,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate role
     const validRoles = ['editor', 'moderator', 'admin', 'super_admin'];
     if (!validRoles.includes(role.trim())) {
       return NextResponse.json({ 
@@ -228,7 +230,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Clean the body data
     const cleanBody = {
       first_name: first_name.trim(),
       last_name: last_name.trim(),
@@ -237,14 +238,20 @@ export async function PUT(request: NextRequest) {
       role: role.trim()
     };
 
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0'
+    };
+    
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/admin/users?id=${id.trim()}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('Cookie') || '',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-      },
+      headers,
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
@@ -283,14 +290,20 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0'
+    };
+    
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/admin/users?id=${id.trim()}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('Cookie') || '',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-      },
+      headers,
       credentials: 'include'
     });
 
