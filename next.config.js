@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
@@ -6,29 +8,32 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-
+  
   trailingSlash: true,
-
-  // ADD THIS WEBPACK CONFIGURATION TO FIX IMPORT ALIASES
+  
+  // Webpack configuration to ensure proper path resolution
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Configure path aliases
+    // Configure path aliases with absolute paths
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src'),
-      '@/components': require('path').resolve(__dirname, 'src/components'),
-      '@/app': require('path').resolve(__dirname, 'src/app'),
-      '@/lib': require('path').resolve(__dirname, 'src/lib'),
-      '@/types': require('path').resolve(__dirname, 'src/types'),
+      '@': path.resolve(__dirname, 'src'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/app': path.resolve(__dirname, 'src/app'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/types': path.resolve(__dirname, 'src/types'),
     };
-
-    // Important: return the modified config
+    
+    // Ensure case-sensitive paths (important for Linux/Render)
+    config.resolve.extensions = ['.tsx', '.ts', '.jsx', '.js', '.json'];
+    
+    // Return the modified config
     return config;
   },
-
-  // Optional: Add experimental features for better performance
+  
+  // Optional: Experimental features
   experimental: {
     optimizeCss: true,
   },
-}
+};
 
 module.exports = nextConfig;
