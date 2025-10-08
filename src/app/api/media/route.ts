@@ -1,4 +1,3 @@
-// src/app/api/media/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -8,9 +7,11 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
 
+    const mediaTypes = ['image', 'video', 'gallery'] as const;
+
     const mockMedia = Array.from({ length: limit }, (_, i) => ({
       id: i + 1,
-      type: type === 'all' ? ['image', 'video', 'gallery'][i % 3] as const : type as any,
+      type: type === 'all' ? mediaTypes[i % 3] : type,
       url: `/api/placeholder/800/600?text=Media+${i + 1}`,
       thumbnail: `/api/placeholder/300/200?text=Thumb+${i + 1}`,
       title: `Media Item ${i + 1}`,
