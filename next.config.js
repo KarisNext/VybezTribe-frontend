@@ -1,5 +1,7 @@
+
 /** @type {import('next').NextConfig} */
 const path = require('path');
+const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 
 const nextConfig = {
   output: 'standalone',
@@ -11,9 +13,9 @@ const nextConfig = {
   
   trailingSlash: true,
   
-  // Webpack configuration to ensure proper path resolution
+  // Webpack configuration for FRONTEND import resolution only
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Configure path aliases with absolute paths
+    // Configure path aliases for TypeScript/React components
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
@@ -23,14 +25,15 @@ const nextConfig = {
       '@/types': path.resolve(__dirname, 'src/types'),
     };
     
-    // Ensure case-sensitive paths (important for Linux/Render)
+    // Ensure proper extension resolution for TypeScript/React files
     config.resolve.extensions = ['.tsx', '.ts', '.jsx', '.js', '.json'];
     
-    // Return the modified config
+    // Add case-sensitive paths plugin for Linux (Render) compatibility
+    config.plugins.push(new CaseSensitivePathsPlugin());
+    
     return config;
   },
   
-  // Optional: Experimental features
   experimental: {
     optimizeCss: true,
   },
