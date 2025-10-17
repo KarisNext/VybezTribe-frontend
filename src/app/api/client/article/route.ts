@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.NODE_ENV === 'development' 
   ? 'http://localhost:5000'
-  : 'https://api.vybeztribe.com';
+  : 'https://vybeztribe.com';
 
 const cleanSlug = (rawSlug: string): string | null => {
     if (!rawSlug) return null;
