@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const getBackendUrl = () => {
   return process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000'
-    : 'https://api.vybeztribe.com';
+    : 'https://vybeztribe.com';
 };
 
 export async function GET(request: NextRequest) {
