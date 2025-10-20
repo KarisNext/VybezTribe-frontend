@@ -1,8 +1,6 @@
+// frontend/src/app/api/client/category/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,22 +31,22 @@ export async function GET(request: NextRequest) {
     
     switch (type) {
       case 'news':
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}/news?page=${page}&limit=${limit}`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}/news?page=${page}&limit=${limit}`;
         break;
       case 'featured':
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}/featured?limit=${limit}`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}/featured?limit=${limit}`;
         break;
       case 'trending':
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}/trending?limit=${limit}`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}/trending?limit=${limit}`;
         break;
       case 'stats':
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}/stats`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}/stats`;
         break;
       case 'details':
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}`;
         break;
       default:
-        backendUrl = `${BACKEND_URL}/api/categories/${encodeURIComponent(slug)}/news?page=${page}&limit=${limit}`;
+        backendUrl = `${getBackendUrl()}/api/categories/${encodeURIComponent(slug)}/news?page=${page}&limit=${limit}`;
         break;
     }
 
@@ -76,7 +74,10 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    const nextResponse = NextResponse.json(data);
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
 
   } catch (error) {
     console.error('Category route error:', error);
