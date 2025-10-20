@@ -1,4 +1,4 @@
-// frontend/src/app/components/ClientSessions.tsx
+// frontend/src/components/client/hooks/ClientSessions.tsx
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
@@ -30,17 +30,7 @@ const ClientSessionContext = createContext<ClientSessionContextType | undefined>
 export const useClientSession = () => {
   const context = useContext(ClientSessionContext);
   if (!context) {
-    return {
-      isAuthenticated: false,
-      isAnonymous: true,
-      isLoading: false,
-      clientId: null,
-      csrfToken: null,
-      error: null,
-      sessionToken: null,
-      checkSession: async () => {},
-      refreshSession: async () => {}
-    };
+    throw new Error('useClientSession must be used within a ClientSessionProvider');
   }
   return context;
 };
@@ -52,6 +42,7 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(true);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   const handleSessionResponse = useCallback((data: ClientSessionData) => {
     console.log('Client session response:', {
@@ -75,36 +66,14 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
     }
   }, []);
 
-  const createAnonymousSession = useCallback(async () => {
+  const checkSession = useCallback(async (isInitialCheck: boolean = false) => {
+    // Prevent multiple simultaneous checks
+    if (isLoading && !isInitialCheck) return;
+    
     try {
-      console.log('Creating anonymous session...');
-      const response = await fetch('/api/client/verify', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action: 'create_anonymous' })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        handleSessionResponse(data);
-        console.log('Anonymous session created:', data.client_id);
-        return true;
-      } else {
-        console.log('Failed to create anonymous session');
-        return false;
+      if (isInitialCheck) {
+        setIsLoading(true);
       }
-    } catch (err) {
-      console.error('Error creating anonymous session:', err);
-      return false;
-    }
-  }, [handleSessionResponse]);
-
-  const checkSession = useCallback(async () => {
-    try {
-      setIsLoading(true);
       setError(null);
       
       console.log('Checking client session...');
@@ -114,31 +83,20 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
+        },
+        // Add cache busting to prevent stale responses
+        next: { revalidate: 0 }
       });
       
       if (response.ok) {
         const data = await response.json();
         handleSessionResponse(data);
         console.log('Client session verified');
-      } else if (response.status === 401) {
-        console.log('No valid session found, creating anonymous session...');
-        // Try to create anonymous session if none exists
-        const created = await createAnonymousSession();
-        if (!created) {
-          setIsAuthenticated(false);
-          setIsAnonymous(true);
-          setClientId(null);
-          setCsrfToken(null);
-          setError('Failed to create session');
-        }
       } else {
         console.log('Session check failed with status:', response.status);
+        // Don't try to create session automatically - let the API handle it
         setIsAuthenticated(false);
         setIsAnonymous(true);
-        setClientId(null);
-        setCsrfToken(null);
         setError('Session check failed');
       }
     } catch (err) {
@@ -147,43 +105,37 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
       setIsAuthenticated(false);
       setIsAnonymous(true);
     } finally {
-      setIsLoading(false);
+      if (isInitialCheck) {
+        setIsLoading(false);
+        setInitialCheckDone(true);
+      }
     }
-  }, [handleSessionResponse, createAnonymousSession]);
+  }, [handleSessionResponse, isLoading]);
 
   const refreshSession = useCallback(async () => {
     console.log('Refreshing client session...');
-    await checkSession();
+    await checkSession(false);
   }, [checkSession]);
 
-  // Initial session check
+  // Initial session check - ONLY ONCE
   useEffect(() => {
-    console.log('ClientSessionProvider mounted, checking session...');
-    checkSession();
-  }, [checkSession]);
+    if (!initialCheckDone) {
+      console.log('Initial client session check...');
+      checkSession(true);
+    }
+  }, [checkSession, initialCheckDone]);
 
-  // Periodic refresh every 10 minutes
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  // Remove the periodic refresh for now until we fix the core issue
+  // useEffect(() => {
+  //   if (!isAuthenticated) return;
     
-    const interval = setInterval(() => {
-      console.log('Periodic session refresh...');
-      checkSession();
-    }, 10 * 60 * 1000);
+  //   const interval = setInterval(() => {
+  //     console.log('Periodic session refresh...');
+  //     checkSession(false);
+  //   }, 10 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated, checkSession]);
-
-  // Debug logging
-  useEffect(() => {
-    console.log('Client session state:', {
-      isAuthenticated,
-      isAnonymous,
-      isLoading,
-      hasClientId: !!clientId,
-      hasError: !!error
-    });
-  }, [isAuthenticated, isAnonymous, isLoading, clientId, error]);
+  //   return () => clearInterval(interval);
+  // }, [isAuthenticated, checkSession]);
 
   const value: ClientSessionContextType = {
     isAuthenticated,
@@ -192,7 +144,7 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
     clientId,
     csrfToken,
     error,
-    sessionToken: csrfToken, // Use CSRF token as session token
+    sessionToken: csrfToken,
     checkSession,
     refreshSession
   };
