@@ -1,9 +1,10 @@
+// frontend/src/app/api/admin/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 const getBackendUrl = () => {
   return process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
+    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
 };
 
 export async function POST(request: NextRequest) {
@@ -24,28 +25,29 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log('Frontend login request for:', body.identifier);
+    console.log('[LOGIN] Request for:', body.identifier);
+    console.log('[LOGIN] Backend URL:', backendUrl);
     
-    // Forward cookies from the request to maintain session consistency
-    const requestCookies = request.headers.get('cookie') || '';
+    // Get cookies from incoming request
+    const incomingCookies = request.headers.get('cookie') || '';
     
     const response = await fetch(`${backendUrl}/api/admin/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend',
-        'Cookie': requestCookies,
-        'X-Forwarded-For': request.headers.get('x-forwarded-for') || request.ip || '',
-        'X-Real-IP': request.headers.get('x-real-ip') || '',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Cookie': incomingCookies,
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend'
       },
       credentials: 'include',
       body: JSON.stringify(body)
     });
-
+    
     let data;
     try {
       const responseText = await response.text();
+      console.log('[LOGIN] Backend response:', responseText.substring(0, 200));
       data = responseText ? JSON.parse(responseText) : {
         success: false,
         authenticated: false,
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
         message: null
       };
     } catch (parseError) {
-      console.error('Failed to parse backend login response:', parseError);
+      console.error('[LOGIN] Failed to parse backend response:', parseError);
       data = {
         success: false,
         authenticated: false,
@@ -64,47 +66,49 @@ export async function POST(request: NextRequest) {
       };
     }
     
-    console.log('Backend login response:', { 
+    console.log('[LOGIN] Response:', { 
       status: response.status, 
       success: data.success,
       authenticated: data.authenticated,
-      hasUser: !!data.user,
-      userRole: data.user?.role
+      hasUser: !!data.user
     });
     
-    // Create response with the same status code
+    // Create response
     const nextResponse = NextResponse.json(data, { status: response.status });
-
-    // Forward session cookies from backend response
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      console.log('Forwarding', setCookieHeaders.length, 'session cookie headers');
-      setCookieHeaders.forEach((cookie, index) => {
-        if (index === 0) {
-          nextResponse.headers.set('Set-Cookie', cookie);
-        } else {
-          nextResponse.headers.append('Set-Cookie', cookie);
+    
+    // CRITICAL: Forward ALL Set-Cookie headers from backend
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    console.log('[LOGIN] Backend sent', backendCookies.length, 'cookies');
+    
+    backendCookies.forEach((cookie) => {
+      // Modify cookie for cross-domain if needed
+      let modifiedCookie = cookie;
+      
+      if (process.env.NODE_ENV === 'production') {
+        // Ensure SameSite=None and Secure for cross-domain
+        if (!cookie.includes('SameSite=')) {
+          modifiedCookie = `${cookie}; SameSite=None; Secure`;
+        } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
+          modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
         }
-      });
-    }
-
-    // Also handle single Set-Cookie header for compatibility
-    const singleSetCookie = response.headers.get('set-cookie');
-    if (singleSetCookie && (!setCookieHeaders || setCookieHeaders.length === 0)) {
-      console.log('Forwarding single session cookie header');
-      nextResponse.headers.set('Set-Cookie', singleSetCookie);
-    }
-
+      }
+      
+      nextResponse.headers.append('Set-Cookie', modifiedCookie);
+    });
+    
+    // Add CORS headers for cross-domain
+    nextResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+    
     return nextResponse;
-
+    
   } catch (error) {
-    console.error('Frontend login API error:', error);
+    console.error('[LOGIN] Network error:', error);
     return NextResponse.json({
       success: false,
       authenticated: false,
       user: null,
-      error: 'Authentication service unavailable - network error',
-      message: null
-    }, { status: 500 });
+      error: 'Authentication service unavailable',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 503 });
   }
 }
