@@ -1,9 +1,6 @@
-// C:\Projects\VybezTribe\frontend\src\app\api\client\search\route.ts
+// frontend/src/app/api/client/search/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,17 +9,15 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '10';
     const categories = searchParams.get('categories');
     const sort = searchParams.get('sort') || 'relevance';
-    const type = searchParams.get('type') || 'search'; // search, suggestions, popular
+    const type = searchParams.get('type') || 'search';
 
-    // Build backend URL based on type
     let backendUrl = '';
     
     if (type === 'suggestions') {
-      backendUrl = `${BACKEND_URL}/api/search/suggestions?q=${encodeURIComponent(query || '')}&limit=${limit}`;
+      backendUrl = `${getBackendUrl()}/api/search/suggestions?q=${encodeURIComponent(query || '')}&limit=${limit}`;
     } else if (type === 'popular') {
-      backendUrl = `${BACKEND_URL}/api/search/popular?limit=${limit}`;
+      backendUrl = `${getBackendUrl()}/api/search/popular?limit=${limit}`;
     } else {
-      // Regular search
       if (!query || query.trim().length === 0) {
         return NextResponse.json({
           success: true,
@@ -32,14 +27,13 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      backendUrl = `${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=${sort}`;
+      backendUrl = `${getBackendUrl()}/api/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=${sort}`;
       
       if (categories) {
         backendUrl += `&categories=${encodeURIComponent(categories)}`;
       }
     }
 
-    // Forward auth headers
     const headers = new Headers({
       'Content-Type': 'application/json',
     });
@@ -67,7 +61,10 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    const nextResponse = NextResponse.json(data);
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
 
   } catch (error) {
     console.error('Search route error:', error);
