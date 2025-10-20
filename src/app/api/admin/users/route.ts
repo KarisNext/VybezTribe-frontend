@@ -1,51 +1,21 @@
-
+// frontend/src/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://vybeztribe.com' 
-  : 'http://localhost:5000';
+import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Frontend API: GET /api/admin/users');
-    
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
-    const backendUrl = `${API_BASE_URL}/api/admin/users${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('Proxying to:', backendUrl);
-    console.log('Headers:', {
-      cookie: request.headers.get('Cookie') ? 'present' : 'missing',
-      csrfToken: request.headers.get('X-CSRF-Token') ? 'present' : 'missing'
-    });
-    
-    const headers: HeadersInit = {
-      'Cookie': request.headers.get('Cookie') || '',
-      'Content-Type': 'application/json',
-      'User-Agent': 'VybezTribe-Admin/1.0'
-    };
-    
-    const csrfToken = request.headers.get('X-CSRF-Token');
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
+    const backendUrl = `${getBackendUrl()}/api/admin/users${queryString ? `?${queryString}` : ''}`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers,
+      headers: buildBackendHeaders(request),
       credentials: 'include'
     });
 
-    console.log('Backend response status:', response.status);
-
     if (!response.ok) {
-      let errorText = '';
-      try {
-        errorText = await response.text();
-        console.error(`Backend users GET error: ${response.status} - ${errorText}`);
-      } catch (e) {
-        console.error(`Backend users GET error: ${response.status} - Unable to read response`);
-      }
+      const errorText = await response.text().catch(() => '');
       
       if (response.status === 401) {
         return NextResponse.json({ 
@@ -59,34 +29,20 @@ export async function GET(request: NextRequest) {
       if (response.status === 404) {
         return NextResponse.json({ 
           success: false, 
-          message: 'Admin users endpoint not found - check backend routing',
-          users: [],
-          debug: {
-            backendUrl,
-            status: response.status,
-            error: errorText
-          }
+          message: 'Admin users endpoint not found',
+          users: []
         }, { status: 404 });
       }
       
       return NextResponse.json({ 
         success: false, 
         message: `Backend error: ${response.status}`,
-        users: [],
-        debug: {
-          status: response.status,
-          error: errorText
-        }
+        users: []
       }, { status: response.status });
     }
 
     const data = await response.json();
-    console.log('Backend data received:', { 
-      success: data.success, 
-      userCount: data.users?.length || 0 
-    });
-    
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: 200,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -95,16 +51,15 @@ export async function GET(request: NextRequest) {
       }
     });
     
+    forwardCookies(response, nextResponse);
+    return nextResponse;
+    
   } catch (error) {
     console.error('Admin Users GET API error:', error);
     return NextResponse.json({ 
       success: false, 
-      message: 'Failed to fetch users - network error',
-      users: [],
-      debug: {
-        error: (error as Error).message,
-        stack: (error as Error).stack
-      }
+      message: 'Failed to fetch users',
+      users: []
     }, { status: 500 });
   }
 }
@@ -153,36 +108,23 @@ export async function POST(request: NextRequest) {
       role: role.trim()
     };
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Cookie': request.headers.get('Cookie') || '',
-      'User-Agent': 'VybezTribe-Admin/1.0'
-    };
-    
-    const csrfToken = request.headers.get('X-CSRF-Token');
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/users`, {
       method: 'POST',
-      headers,
+      headers: buildBackendHeaders(request),
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
 
     const data = await response.json();
-    
-    if (!response.ok) {
-      console.error(`Backend users POST error: ${response.status} - ${data.message || 'Unknown error'}`);
-    }
-
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin Users POST API error:', error);
@@ -239,36 +181,23 @@ export async function PUT(request: NextRequest) {
       role: role.trim()
     };
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Cookie': request.headers.get('Cookie') || '',
-      'User-Agent': 'VybezTribe-Admin/1.0'
-    };
-    
-    const csrfToken = request.headers.get('X-CSRF-Token');
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/admin/users?id=${id.trim()}`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/users?id=${id.trim()}`, {
       method: 'PUT',
-      headers,
+      headers: buildBackendHeaders(request),
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
 
     const data = await response.json();
-    
-    if (!response.ok) {
-      console.error(`Backend users PUT error: ${response.status} - ${data.message || 'Unknown error'}`);
-    }
-
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin Users PUT API error:', error);
@@ -291,35 +220,22 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Cookie': request.headers.get('Cookie') || '',
-      'User-Agent': 'VybezTribe-Admin/1.0'
-    };
-    
-    const csrfToken = request.headers.get('X-CSRF-Token');
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/admin/users?id=${id.trim()}`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/users?id=${id.trim()}`, {
       method: 'DELETE',
-      headers,
+      headers: buildBackendHeaders(request),
       credentials: 'include'
     });
 
     const data = await response.json();
-    
-    if (!response.ok) {
-      console.error(`Backend users DELETE error: ${response.status} - ${data.message || 'Unknown error'}`);
-    }
-
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate'
       }
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin Users DELETE API error:', error);
