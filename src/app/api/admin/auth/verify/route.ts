@@ -1,30 +1,40 @@
+// frontend/src/app/api/admin/auth/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 const getBackendUrl = () => {
   return process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
+    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
 };
 
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = getBackendUrl();
-    const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('Frontend verify request - forwarding session cookies');
+    // Get ALL cookies from incoming request
+    const incomingCookies = request.headers.get('cookie') || '';
+    
+    console.log('[VERIFY] Checking session...');
+    console.log('[VERIFY] Has cookies:', !!incomingCookies);
+    console.log('[VERIFY] Backend URL:', backendUrl);
     
     const response = await fetch(`${backendUrl}/api/admin/auth/verify`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cookie': incomingCookies,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend'
       },
-      credentials: 'include'
+      credentials: 'include',
+      cache: 'no-store'
     });
-
+    
+    console.log('[VERIFY] Backend response status:', response.status);
+    
     let data;
     try {
       const responseText = await response.text();
@@ -32,11 +42,11 @@ export async function GET(request: NextRequest) {
         success: false,
         authenticated: false,
         user: null,
-        error: 'Empty response from server',
+        error: response.status === 401 ? 'Not authenticated' : 'Empty response',
         message: null
       };
     } catch (parseError) {
-      console.error('Failed to parse backend verify response:', parseError);
+      console.error('[VERIFY] Parse error:', parseError);
       data = {
         success: false,
         authenticated: false,
@@ -46,44 +56,41 @@ export async function GET(request: NextRequest) {
       };
     }
     
-    console.log('Backend verify response:', { 
-      status: response.status, 
-      success: data.success,
-      authenticated: data.authenticated,
-      hasUser: !!data.user,
-      userRole: data.user?.role
+    console.log('[VERIFY] Authenticated:', data.authenticated, 'Has user:', !!data.user);
+    
+    // Create response with appropriate status
+    const statusCode = response.ok ? 200 : response.status;
+    const nextResponse = NextResponse.json(data, { status: statusCode });
+    
+    // Forward any cookies from backend
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    backendCookies.forEach((cookie) => {
+      let modifiedCookie = cookie;
+      
+      if (process.env.NODE_ENV === 'production') {
+        if (!cookie.includes('SameSite=')) {
+          modifiedCookie = `${cookie}; SameSite=None; Secure`;
+        } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
+          modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
+        }
+      }
+      
+      nextResponse.headers.append('Set-Cookie', modifiedCookie);
     });
     
-    const nextResponse = NextResponse.json(data, { status: response.status });
-
-    // Forward session cookies from backend response
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie, index) => {
-        if (index === 0) {
-          nextResponse.headers.set('Set-Cookie', cookie);
-        } else {
-          nextResponse.headers.append('Set-Cookie', cookie);
-        }
-      });
-    }
-
-    // Also handle single Set-Cookie header for compatibility
-    const singleSetCookie = response.headers.get('set-cookie');
-    if (singleSetCookie && (!setCookieHeaders || setCookieHeaders.length === 0)) {
-      nextResponse.headers.set('Set-Cookie', singleSetCookie);
-    }
-
+    nextResponse.headers.set('Access-Control-Allow-Credentials', 'true');
+    nextResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
     return nextResponse;
-
+    
   } catch (error) {
-    console.error('Frontend verify API error:', error);
+    console.error('[VERIFY] Network error:', error);
     return NextResponse.json({
       success: false,
       authenticated: false,
       user: null,
-      error: 'Session verification failed - network error',
-      message: null
-    }, { status: 500 });
+      error: 'Session verification failed',
+      message: error instanceof Error ? error.message : 'Network error'
+    }, { status: 503 });
   }
 }
