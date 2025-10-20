@@ -1,17 +1,15 @@
+// frontend/src/app/api/retrieve/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     let slug = searchParams.get('slug');
     
-    console.log('=== ARTICLE ROUTE DEBUG ===');
+    console.log('=== RETRIEVE ARTICLE ROUTE DEBUG ===');
     console.log('Received raw slug:', slug);
-    console.log('Backend URL:', BACKEND_URL);
+    console.log('Backend URL:', getBackendUrl());
     
     if (!slug) {
       console.log('ERROR: No slug provided');
@@ -33,16 +31,25 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Build backend URL - THIS IS CRITICAL
-    const backendUrl = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}`;
+    // Build backend URL
+    const backendUrl = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}`;
     console.log('Calling backend URL:', backendUrl);
     
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0',
+    };
+
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || ''
-      },
+      headers,
+      credentials: 'include',
       cache: 'no-cache'
     });
 
@@ -69,15 +76,24 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log('Backend data received successfully');
 
-    return NextResponse.json({
+    const nextResponse = NextResponse.json({
       success: true,
       article: data.article,
       related_articles: data.related_articles || [],
       comments: data.comments || []
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
 
+    forwardCookies(response, nextResponse);
+    return nextResponse;
+
   } catch (error) {
-    console.error('=== ARTICLE ROUTE ERROR ===');
+    console.error('=== RETRIEVE ARTICLE ROUTE ERROR ===');
     console.error('Error details:', error);
     
     return NextResponse.json({
@@ -93,7 +109,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, slug, ...otherData } = body;
 
-    console.log('=== ARTICLE POST DEBUG ===');
+    console.log('=== RETRIEVE ARTICLE POST DEBUG ===');
     console.log('Action:', action);
     console.log('Slug:', slug);
 
@@ -108,10 +124,10 @@ export async function POST(request: NextRequest) {
     
     switch (action) {
       case 'view':
-        endpoint = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}/view`;
+        endpoint = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}/view`;
         break;
       case 'like':
-        endpoint = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}/like`;
+        endpoint = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}/like`;
         break;
       default:
         return NextResponse.json({
@@ -122,20 +138,40 @@ export async function POST(request: NextRequest) {
 
     console.log('Calling backend endpoint:', endpoint);
 
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0',
+    };
+
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || ''
-      },
+      headers,
+      credentials: 'include',
       body: JSON.stringify(otherData)
     });
 
     const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    
+    const nextResponse = NextResponse.json(data, { 
+      status: response.status,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+
+    forwardCookies(response, nextResponse);
+    return nextResponse;
 
   } catch (error) {
-    console.error('=== ARTICLE POST ERROR ===');
+    console.error('=== RETRIEVE ARTICLE POST ERROR ===');
     console.error('Error details:', error);
     
     return NextResponse.json({
