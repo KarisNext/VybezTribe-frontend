@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const getBackendUrl = () => {
   return process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
+    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
 };
 
 interface RouteParams {
@@ -27,44 +27,58 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }, { status: 400 });
     }
     
-    const queryString = searchParams.toString();
-    const endpoint = `/api/articles/${slug}${queryString ? `?${queryString}` : ''}`;
+    console.log('[ARTICLE] Fetching:', slug);
     
-    console.log('Article API request:', endpoint);
+    // Use the correct backend endpoint: /api/client/article with query param
+    const queryParams = new URLSearchParams(searchParams);
+    queryParams.set('slug', slug);
+    const queryString = queryParams.toString();
     
-    const response = await fetch(`${backendUrl}${endpoint}`, {
+    const endpoint = `${backendUrl}/api/client/article?${queryString}`;
+    
+    const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
-        'Authorization': request.headers.get('authorization') || '',
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App'
       },
-      credentials: 'include'
+      credentials: 'include',
+      cache: 'no-store'
     });
     
-    const data = await response.json();
+    console.log('[ARTICLE] Response status:', response.status);
     
-    const nextResponse = NextResponse.json(data, { 
-      status: response.ok ? 200 : response.status 
-    });
-    
-    // Forward cookies
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie) => {
-        nextResponse.headers.append('Set-Cookie', cookie);
-      });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ARTICLE] Error:', errorText);
+      return NextResponse.json({
+        success: false,
+        message: 'Article not found',
+        article: null
+      }, { status: response.status });
     }
     
+    const data = await response.json();
+    const nextResponse = NextResponse.json(data);
+    
+    // Forward cookies
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    backendCookies.forEach((cookie) => {
+      nextResponse.headers.append('Set-Cookie', cookie);
+    });
+    
     return nextResponse;
-
+    
   } catch (error) {
-    console.error('Article API error:', error);
+    console.error('[ARTICLE] Network error:', error);
     return NextResponse.json({
       success: false,
       message: 'Failed to fetch article',
-      article: null
+      article: null,
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
@@ -84,15 +98,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }, { status: 400 });
     }
     
-    console.log('Article POST request:', slug, body.action || 'unknown');
+    console.log('[ARTICLE POST] Action:', body.action || 'unknown', 'for:', slug);
     
-    const response = await fetch(`${backendUrl}/api/articles/${slug}`, {
+    // Use client API for interactions
+    const queryParams = new URLSearchParams({ slug });
+    const endpoint = `${backendUrl}/api/client/article?${queryParams}`;
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
-        'Authorization': request.headers.get('authorization') || '',
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App'
       },
       body: JSON.stringify(body),
       credentials: 'include'
@@ -102,20 +121,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const nextResponse = NextResponse.json(data, { status: response.status });
     
     // Forward cookies
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie) => {
-        nextResponse.headers.append('Set-Cookie', cookie);
-      });
-    }
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    backendCookies.forEach((cookie) => {
+      nextResponse.headers.append('Set-Cookie', cookie);
+    });
     
     return nextResponse;
-
+    
   } catch (error) {
-    console.error('Article POST error:', error);
+    console.error('[ARTICLE POST] Error:', error);
     return NextResponse.json({
       success: false,
-      message: 'Request failed'
+      message: 'Request failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
