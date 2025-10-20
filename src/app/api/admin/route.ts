@@ -1,23 +1,15 @@
-// File: frontend/src/app/api/admin/route.ts
+// frontend/src/app/api/admin/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://vybeztribe.com' 
-  : 'http://localhost:5000';
+import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
     
-    // Forward the request to backend retrieve endpoint
-    const response = await fetch(`${API_BASE_URL}/api/retrieve?${queryString}`, {
+    const response = await fetch(`${getBackendUrl()}/api/retrieve?${queryString}`, {
       method: 'GET',
-      headers: {
-        'Cookie': request.headers.get('Cookie') || '',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-        'Content-Type': 'application/json',
-      },
+      headers: buildBackendHeaders(request),
       credentials: 'include'
     });
 
@@ -28,8 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -37,6 +28,9 @@ export async function GET(request: NextRequest) {
         'Expires': '0'
       }
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin GET API error:', error);
@@ -55,14 +49,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Handle bulk actions
-    const response = await fetch(`${API_BASE_URL}/api/actions`, {
+    const response = await fetch(`${getBackendUrl()}/api/actions`, {
       method: 'POST',
-      headers: {
-        'Cookie': request.headers.get('Cookie') || '',
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-      },
+      headers: buildBackendHeaders(request),
       credentials: 'include',
       body: JSON.stringify(body)
     });
@@ -74,10 +63,12 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status 
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin POST API error:', error);
@@ -106,14 +97,9 @@ export async function DELETE(request: NextRequest) {
 
     const body = await request.json();
     
-    // Forward the request to backend retrieve endpoint
-    const response = await fetch(`${API_BASE_URL}/api/retrieve?id=${id}`, {
+    const response = await fetch(`${getBackendUrl()}/api/retrieve?id=${id}`, {
       method: 'DELETE',
-      headers: {
-        'Cookie': request.headers.get('Cookie') || '',
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-      },
+      headers: buildBackendHeaders(request),
       credentials: 'include',
       body: JSON.stringify(body)
     });
@@ -125,10 +111,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    return NextResponse.json(data, { 
+    const nextResponse = NextResponse.json(data, { 
       status: response.status 
     });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin DELETE API error:', error);
