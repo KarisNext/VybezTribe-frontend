@@ -1,50 +1,54 @@
 // frontend/src/lib/backend-config.ts
+import { NextResponse } from 'next/server';
 
+/**
+ * Central backend URL configuration
+ * Update this single file when changing hosting providers
+ */
 export const getBackendUrl = (): string => {
   if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:5000';
+    return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   }
-  return process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
+  
+  // Production: Update this when moving to a new VPS or hosting provider
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.vybeztribe.com';
 };
 
-export const forwardCookies = (response: Response) => {
-  const cookies: string[] = [];
-  const backendCookies = response.headers.raw?.()['set-cookie'] || [];
-  
-  backendCookies.forEach((cookie) => {
-    let modifiedCookie = cookie;
-    
-    if (process.env.NODE_ENV === 'production') {
-      if (!cookie.includes('SameSite=')) {
-        modifiedCookie = `${cookie}; SameSite=None; Secure`;
-      } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
-        modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
-      }
-    }
-    
-    cookies.push(modifiedCookie);
-  });
-  
-  return cookies;
+/**
+ * Forward cookies from backend response to Next.js response
+ * This ensures session cookies and other authentication tokens are properly maintained
+ */
+export const forwardCookies = (backendResponse: Response, nextResponse: NextResponse): void => {
+  const setCookieHeaders = backendResponse.headers.get('set-cookie');
+  if (setCookieHeaders) {
+    nextResponse.headers.set('set-cookie', setCookieHeaders);
+  }
 };
 
-export const buildBackendHeaders = (request: Request): HeadersInit => {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Cookie': request.headers.get('Cookie') || '',
+/**
+ * Get default headers for backend requests
+ * Includes common headers needed for authentication and tracking
+ */
+export const getDefaultHeaders = (additionalHeaders?: HeadersInit): HeadersInit => {
+  return {
     'User-Agent': 'VybezTribe-Admin/1.0',
+    'Accept': 'application/json',
+    ...additionalHeaders
   };
-  
-  const csrfToken = request.headers.get('X-CSRF-Token');
-  if (csrfToken) {
-    headers['X-CSRF-Token'] = csrfToken;
-  }
-  
-  const origin = request.headers.get('origin');
-  if (origin) {
-    headers['Origin'] = origin;
-  }
-  
-  return headers;
+};
+
+/**
+ * Create fetch options with credentials and common settings
+ */
+export const getDefaultFetchOptions = (
+  method: string = 'GET',
+  additionalHeaders?: HeadersInit,
+  body?: BodyInit
+): RequestInit => {
+  return {
+    method,
+    headers: getDefaultHeaders(additionalHeaders),
+    credentials: 'include',
+    ...(body && { body })
+  };
 };
