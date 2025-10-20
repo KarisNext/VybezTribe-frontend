@@ -1,8 +1,6 @@
+// frontend/src/app/api/client/article/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 const cleanSlug = (rawSlug: string): string | null => {
     if (!rawSlug) return null;
@@ -36,7 +34,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const backendUrl = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}`;
+    const backendUrl = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}`;
     
     const headers = new Headers({
         'Content-Type': 'application/json',
@@ -72,7 +70,10 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    const nextResponse = NextResponse.json(data);
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
 
   } catch (error) {
     console.error('Article route error:', error);
@@ -103,10 +104,10 @@ export async function POST(request: NextRequest) {
     
     switch (action) {
       case 'view':
-        endpoint = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}/view`;
+        endpoint = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}/view`;
         break;
       case 'like':
-        endpoint = `${BACKEND_URL}/api/articles/${encodeURIComponent(slug)}/like`;
+        endpoint = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}/like`;
         break;
       default:
         return NextResponse.json({
@@ -133,7 +134,10 @@ export async function POST(request: NextRequest) {
 
     try {
         const data = await response.json();
-        return NextResponse.json(data, { status: response.status });
+        const nextResponse = NextResponse.json(data, { status: response.status });
+        
+        forwardCookies(response, nextResponse);
+        return nextResponse;
     } catch {
         return NextResponse.json({
             success: false,
