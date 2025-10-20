@@ -4,142 +4,167 @@ import { NextRequest, NextResponse } from 'next/server';
 const getBackendUrl = () => {
   return process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
+    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
 };
 
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = getBackendUrl();
-    const requestCookies = request.headers.get('cookie') || '';
+    const incomingCookies = request.headers.get('cookie') || '';
     
-    console.log('Frontend client verify - checking session...');
+    console.log('[CLIENT VERIFY] Checking session...');
     
-    // Call the correct backend endpoint
-    const verifyResponse = await fetch(`${backendUrl}/api/client/verify`, {
+    const response = await fetch(`${backendUrl}/api/client/auth/verify`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
-        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
-        'X-Real-IP': request.headers.get('x-real-ip') || '',
+        'Accept': 'application/json',
+        'Cookie': incomingCookies,
+        'Cache-Control': 'no-cache',
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com'
       },
-      credentials: 'include'
+      credentials: 'include',
+      cache: 'no-store'
     });
     
-    if (verifyResponse.ok) {
-      const verifyData = await verifyResponse.json();
-      console.log('Session verified:', verifyData.success);
+    console.log('[CLIENT VERIFY] Response status:', response.status);
+    
+    let data;
+    try {
+      const responseText = await response.text();
+      data = responseText ? JSON.parse(responseText) : {
+        success: false,
+        isAuthenticated: false,
+        isAnonymous: true,
+        user: null,
+        client_id: null,
+        csrf_token: null,
+        message: 'Empty response'
+      };
+    } catch (parseError) {
+      console.error('[CLIENT VERIFY] Parse error:', parseError);
+      data = {
+        success: false,
+        isAuthenticated: false,
+        isAnonymous: true,
+        user: null,
+        client_id: null,
+        csrf_token: null,
+        message: 'Invalid response'
+      };
+    }
+    
+    const statusCode = response.ok ? 200 : response.status;
+    const nextResponse = NextResponse.json(data, { status: statusCode });
+    
+    // Forward cookies
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    backendCookies.forEach((cookie) => {
+      let modifiedCookie = cookie;
       
-      const nextResponse = NextResponse.json(verifyData);
-      
-      // Forward any cookies from backend
-      const setCookieHeaders = verifyResponse.headers.getSetCookie?.();
-      if (setCookieHeaders && setCookieHeaders.length > 0) {
-        setCookieHeaders.forEach((cookie) => {
-          nextResponse.headers.append('Set-Cookie', cookie);
-        });
+      if (process.env.NODE_ENV === 'production') {
+        if (!cookie.includes('SameSite=')) {
+          modifiedCookie = `${cookie}; SameSite=None; Secure`;
+        } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
+          modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
+        }
       }
       
-      return nextResponse;
-    }
-    
-    console.log('Session verification failed, creating anonymous session...');
-    
-    // If verification failed, try to create anonymous session via POST
-    const createResponse = await fetch(`${backendUrl}/api/client/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
-        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
-        'X-Real-IP': request.headers.get('x-real-ip') || '',
-      },
-      body: JSON.stringify({ action: 'create_anonymous' }),
-      credentials: 'include'
+      nextResponse.headers.append('Set-Cookie', modifiedCookie);
     });
     
-    if (!createResponse.ok) {
-      throw new Error('Failed to create anonymous session');
-    }
-
-    const createData = await createResponse.json();
-    console.log('Anonymous session created:', createData.success);
-    
-    const nextResponse = NextResponse.json(createData);
-    
-    // Forward the session cookie from backend
-    const setCookieHeaders = createResponse.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie) => {
-        nextResponse.headers.append('Set-Cookie', cookie);
-      });
-    }
+    nextResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     
     return nextResponse;
-
-  } catch (error) {
-    console.error('Client verification error:', error);
     
-    // Return fallback response to prevent frontend errors
+  } catch (error) {
+    console.error('[CLIENT VERIFY] Error:', error);
     return NextResponse.json({
-      success: true, // Changed to true to allow frontend to continue
-      isAuthenticated: true, // Allow access for now
-      isAnonymous: false,
+      success: false,
+      isAuthenticated: false,
+      isAnonymous: true,
       user: null,
-      client_id: 'temp-client-id',
-      csrf_token: 'temp-csrf-token',
-      message: 'Using temporary session'
-    }, { 
-      status: 200, // Changed to 200
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
-    });
+      client_id: null,
+      csrf_token: null,
+      message: 'Session verification failed'
+    }, { status: 503 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const backendUrl = getBackendUrl();
-    const requestCookies = request.headers.get('cookie') || '';
+    const incomingCookies = request.headers.get('cookie') || '';
     const body = await request.json();
     
-    console.log('Frontend client POST - action:', body.action);
+    console.log('[CLIENT VERIFY POST] Action:', body.action);
     
-    const response = await fetch(`${backendUrl}/api/client/verify`, {
+    const response = await fetch(`${backendUrl}/api/client/auth/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
+        'Accept': 'application/json',
+        'Cookie': incomingCookies,
+        'Origin': request.headers.get('origin') || 'https://vybeztribe.com'
       },
       body: JSON.stringify(body),
       credentials: 'include'
     });
     
-    const data = await response.json();
-    const nextResponse = NextResponse.json(data, { status: response.status });
-    
-    // Forward any cookies
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie) => {
-        nextResponse.headers.append('Set-Cookie', cookie);
-      });
+    let data;
+    try {
+      const responseText = await response.text();
+      data = responseText ? JSON.parse(responseText) : {
+        success: false,
+        isAuthenticated: false,
+        isAnonymous: true,
+        user: null,
+        client_id: null,
+        csrf_token: null,
+        message: 'Empty response'
+      };
+    } catch (parseError) {
+      data = {
+        success: false,
+        isAuthenticated: false,
+        isAnonymous: true,
+        user: null,
+        client_id: null,
+        csrf_token: null,
+        message: 'Invalid response'
+      };
     }
     
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
+    // Forward cookies
+    const backendCookies = response.headers.raw()['set-cookie'] || [];
+    backendCookies.forEach((cookie) => {
+      let modifiedCookie = cookie;
+      
+      if (process.env.NODE_ENV === 'production') {
+        if (!cookie.includes('SameSite=')) {
+          modifiedCookie = `${cookie}; SameSite=None; Secure`;
+        } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
+          modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
+        }
+      }
+      
+      nextResponse.headers.append('Set-Cookie', modifiedCookie);
+    });
+    
     return nextResponse;
-
+    
   } catch (error) {
-    console.error('Client POST error:', error);
+    console.error('[CLIENT VERIFY POST] Error:', error);
     return NextResponse.json({
-      success: true, // Fallback to allow frontend to work
-      isAuthenticated: true,
-      isAnonymous: false,
-      client_id: 'temp-client-id',
-      csrf_token: 'temp-csrf-token',
-      message: 'Using temporary session'
-    }, { status: 200 });
+      success: false,
+      isAuthenticated: false,
+      isAnonymous: true,
+      user: null,
+      client_id: null,
+      csrf_token: null,
+      message: 'Request failed'
+    }, { status: 500 });
   }
 }
