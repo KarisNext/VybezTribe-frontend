@@ -38,6 +38,13 @@ export const getDefaultHeaders = (additionalHeaders?: HeadersInit): HeadersInit 
 };
 
 /**
+ * Build headers for backend requests (alias for getDefaultHeaders for backward compatibility)
+ */
+export const buildBackendHeaders = (additionalHeaders?: HeadersInit): HeadersInit => {
+  return getDefaultHeaders(additionalHeaders);
+};
+
+/**
  * Create fetch options with credentials and common settings
  */
 export const getDefaultFetchOptions = (
@@ -50,5 +57,27 @@ export const getDefaultFetchOptions = (
     headers: getDefaultHeaders(additionalHeaders),
     credentials: 'include',
     ...(body && { body })
+  };
+};
+
+/**
+ * Build complete fetch configuration for backend requests
+ */
+export const buildBackendFetchConfig = (
+  method: string = 'GET',
+  body?: any,
+  contentType: string = 'application/json'
+): RequestInit => {
+  const headers = buildBackendHeaders({
+    'Content-Type': contentType,
+  });
+
+  return {
+    method,
+    headers,
+    credentials: 'include',
+    ...(body && { 
+      body: contentType === 'application/json' ? JSON.stringify(body) : body 
+    })
   };
 };
