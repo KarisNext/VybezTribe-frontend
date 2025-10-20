@@ -1,9 +1,6 @@
-// File: frontend/src/app/api/admin/stats/route.ts
+// frontend/src/app/api/admin/stats/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://vybeztribe.com' 
-  : 'http://localhost:5000';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 // GET - Retrieve comprehensive statistics
 export async function GET(request: NextRequest) {
@@ -23,14 +20,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/admin/stats?timeRange=${timeRange}`, {
+    const headers: HeadersInit = {
+      'Cookie': request.headers.get('Cookie') || '',
+      'User-Agent': 'VybezTribe-Admin/1.0',
+      'Accept': 'application/json',
+    };
+
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    const response = await fetch(`${getBackendUrl()}/api/admin/stats?timeRange=${timeRange}`, {
       method: 'GET',
-      headers: {
-        'Cookie': request.headers.get('Cookie') || '',
-        'User-Agent': 'VybezTribe-Admin/1.0',
-        'X-CSRF-Token': request.headers.get('X-CSRF-Token') || '',
-        'Accept': 'application/json',
-      },
+      headers,
       credentials: 'include'
     });
 
@@ -88,7 +91,7 @@ export async function GET(request: NextRequest) {
       recentActivity: data.stats?.recentActivity || []
     };
 
-    return NextResponse.json({
+    const nextResponse = NextResponse.json({
       success: true,
       stats,
       timeRange,
@@ -101,6 +104,9 @@ export async function GET(request: NextRequest) {
         'Expires': '0'
       }
     });
+
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('Admin stats API error:', error);
