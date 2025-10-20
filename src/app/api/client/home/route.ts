@@ -1,16 +1,11 @@
-// app/api/client/home/route.ts - FIXED TO USE CORRECT ENDPOINTS
+// frontend/src/app/api/client/home/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all';
-    
-    console.log('Home API called with type:', type);
 
     switch (type) {
       case 'breaking':
@@ -38,14 +33,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// FIXED: Use news.js breaking endpoint (it works, just has wrong author table)
-// OR use featured from categories as temporary solution
 async function getBreakingNews(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '10';
   
-  // Option 1: Still use news/breaking but be aware of author issues
-  const backendUrl = `${BACKEND_URL}/api/news/breaking?limit=${limit}`;
+  const backendUrl = `${getBackendUrl()}/api/news/breaking?limit=${limit}`;
   
   const response = await fetch(backendUrl, {
     headers: {
@@ -59,19 +51,21 @@ async function getBreakingNews(request: NextRequest) {
   }
 
   const data = await response.json();
-  return NextResponse.json({
+  const nextResponse = NextResponse.json({
     success: true,
     breaking_news: data.breaking_news || data.news || [],
     total: data.total || 0
   });
+  
+  forwardCookies(response, nextResponse);
+  return nextResponse;
 }
 
-// FIXED: Use news.js featured endpoint
 async function getFeaturedNews(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '10';
   
-  const backendUrl = `${BACKEND_URL}/api/news/featured?limit=${limit}`;
+  const backendUrl = `${getBackendUrl()}/api/news/featured?limit=${limit}`;
   
   const response = await fetch(backendUrl, {
     headers: {
@@ -85,19 +79,21 @@ async function getFeaturedNews(request: NextRequest) {
   }
 
   const data = await response.json();
-  return NextResponse.json({
+  const nextResponse = NextResponse.json({
     success: true,
     featured_news: data.featured_news || data.news || [],
     total: data.total || 0
   });
+  
+  forwardCookies(response, nextResponse);
+  return nextResponse;
 }
 
-// FIXED: Use news.js trending endpoint
 async function getTrendingNews(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = searchParams.get('limit') || '10';
   
-  const backendUrl = `${BACKEND_URL}/api/news/trending?limit=${limit}`;
+  const backendUrl = `${getBackendUrl()}/api/news/trending?limit=${limit}`;
   
   const response = await fetch(backendUrl, {
     headers: {
@@ -111,16 +107,18 @@ async function getTrendingNews(request: NextRequest) {
   }
 
   const data = await response.json();
-  return NextResponse.json({
+  const nextResponse = NextResponse.json({
     success: true,
     trending_news: data.trending_news || data.news || [],
     total: data.total || 0
   });
+  
+  forwardCookies(response, nextResponse);
+  return nextResponse;
 }
 
-// FIXED: Use news.js categories endpoint
 async function getCategories(request: NextRequest) {
-  const backendUrl = `${BACKEND_URL}/api/news/categories`;
+  const backendUrl = `${getBackendUrl()}/api/news/categories`;
   
   const response = await fetch(backendUrl, {
     headers: {
@@ -134,14 +132,16 @@ async function getCategories(request: NextRequest) {
   }
 
   const data = await response.json();
-  return NextResponse.json({
+  const nextResponse = NextResponse.json({
     success: true,
     categories: data.categories || [],
     total: data.categories?.length || 0
   });
+  
+  forwardCookies(response, nextResponse);
+  return nextResponse;
 }
 
-// FIXED: Use categories.js endpoint instead of news.js
 async function getCategoryPreview(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get('category');
@@ -154,8 +154,7 @@ async function getCategoryPreview(request: NextRequest) {
     }, { status: 400 });
   }
   
-  // CRITICAL FIX: Use categories.js endpoint which uses admins table
-  const backendUrl = `${BACKEND_URL}/api/categories/${category}/news?limit=${limit}`;
+  const backendUrl = `${getBackendUrl()}/api/categories/${category}/news?limit=${limit}`;
   
   const response = await fetch(backendUrl, {
     headers: {
@@ -169,32 +168,33 @@ async function getCategoryPreview(request: NextRequest) {
   }
 
   const data = await response.json();
-  return NextResponse.json({
+  const nextResponse = NextResponse.json({
     success: true,
     category: data.category,
     news: data.news || [],
     total: data.news?.length || 0
   });
+  
+  forwardCookies(response, nextResponse);
+  return nextResponse;
 }
 
-// CRITICAL FIX: Use categories.js for category previews
 async function getAllHomeContent(request: NextRequest) {
   try {
-    // Fetch breaking, featured, and categories in parallel
     const [breakingRes, featuredRes, categoriesRes] = await Promise.all([
-      fetch(`${BACKEND_URL}/api/news/breaking?limit=10`, {
+      fetch(`${getBackendUrl()}/api/news/breaking?limit=10`, {
         headers: {
           'Content-Type': 'application/json',
           'Cookie': request.headers.get('cookie') || ''
         }
       }),
-      fetch(`${BACKEND_URL}/api/news/featured?limit=10`, {
+      fetch(`${getBackendUrl()}/api/news/featured?limit=10`, {
         headers: {
           'Content-Type': 'application/json',
           'Cookie': request.headers.get('cookie') || ''
         }
       }),
-      fetch(`${BACKEND_URL}/api/news/categories`, {
+      fetch(`${getBackendUrl()}/api/news/categories`, {
         headers: {
           'Content-Type': 'application/json',
           'Cookie': request.headers.get('cookie') || ''
@@ -206,15 +206,13 @@ async function getAllHomeContent(request: NextRequest) {
     const featured = featuredRes.ok ? await featuredRes.json() : { featured_news: [] };
     const categories = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
 
-    // CRITICAL FIX: Get category previews using categories.js endpoints (which use admins table)
     const categoryPreviews: { [key: string]: any[] } = {};
     const mainCategories = ['politics', 'counties', 'opinion', 'business', 'sports', 'technology'];
     
     for (const categorySlug of mainCategories) {
       try {
-        // Use categories.js endpoint instead of news.js
         const categoryRes = await fetch(
-          `${BACKEND_URL}/api/categories/${categorySlug}/news?limit=4`,
+          `${getBackendUrl()}/api/categories/${categorySlug}/news?limit=4`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -236,7 +234,7 @@ async function getAllHomeContent(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const nextResponse = NextResponse.json({
       success: true,
       breaking_news: breaking.breaking_news || breaking.news || [],
       featured_news: featured.featured_news || featured.news || [],
@@ -248,6 +246,12 @@ async function getAllHomeContent(request: NextRequest) {
         categories: categories.categories?.length || 0
       }
     });
+    
+    forwardCookies(breakingRes, nextResponse);
+    forwardCookies(featuredRes, nextResponse);
+    forwardCookies(categoriesRes, nextResponse);
+    
+    return nextResponse;
 
   } catch (error) {
     console.error('All home content fetch error:', error);
