@@ -1,22 +1,15 @@
-// app/api/client/fetch/route.ts - WORKING VERSION
+// frontend/src/app/api/client/fetch/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5000'
-  : 'https://vybeztribe.com';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'news';
     
-    console.log('Frontend API called with type:', type);
-    
-    // Build backend URL based on type
     let backendUrl = '';
     const params = new URLSearchParams();
     
-    // Copy query parameters
     searchParams.forEach((value, key) => {
       if (key !== 'type') {
         params.set(key, value);
@@ -29,7 +22,7 @@ export async function GET(request: NextRequest) {
         if (!category) {
           return NextResponse.json({ success: false, message: 'Category required' }, { status: 400 });
         }
-        backendUrl = `${BACKEND_URL}/api/news/category/${category}`;
+        backendUrl = `${getBackendUrl()}/api/news/category/${category}`;
         break;
         
       case 'article':
@@ -37,39 +30,37 @@ export async function GET(request: NextRequest) {
         if (!slug) {
           return NextResponse.json({ success: false, message: 'Article slug required' }, { status: 400 });
         }
-        backendUrl = `${BACKEND_URL}/api/news/article/${slug}`;
+        backendUrl = `${getBackendUrl()}/api/news/article/${slug}`;
         break;
         
       case 'breaking':
-        backendUrl = `${BACKEND_URL}/api/news/breaking`;
+        backendUrl = `${getBackendUrl()}/api/news/breaking`;
         break;
         
       case 'featured':
-        backendUrl = `${BACKEND_URL}/api/news/featured`;
+        backendUrl = `${getBackendUrl()}/api/news/featured`;
         break;
         
       case 'trending':
-        backendUrl = `${BACKEND_URL}/api/news/trending`;
+        backendUrl = `${getBackendUrl()}/api/news/trending`;
         break;
         
       case 'categories':
-        backendUrl = `${BACKEND_URL}/api/news/categories`;
+        backendUrl = `${getBackendUrl()}/api/news/categories`;
         break;
         
       case 'search':
-        backendUrl = `${BACKEND_URL}/api/news`;
+        backendUrl = `${getBackendUrl()}/api/news`;
         const query = searchParams.get('q');
         if (query) params.set('search', query);
         break;
         
       default:
-        backendUrl = `${BACKEND_URL}/api/news`;
+        backendUrl = `${getBackendUrl()}/api/news`;
     }
     
     const queryString = params.toString();
     const fullUrl = `${backendUrl}${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('Calling backend:', fullUrl);
     
     const response = await fetch(fullUrl, {
       headers: {
@@ -87,7 +78,10 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json();
-    return NextResponse.json(data);
+    const nextResponse = NextResponse.json(data);
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('API route error:', error);
@@ -114,13 +108,13 @@ export async function POST(request: NextRequest) {
     let endpoint = '';
     switch (action) {
       case 'view':
-        endpoint = `${BACKEND_URL}/api/news/view/${id}`;
+        endpoint = `${getBackendUrl()}/api/news/view/${id}`;
         break;
       case 'like':
-        endpoint = `${BACKEND_URL}/api/news/like/${id}`;
+        endpoint = `${getBackendUrl()}/api/news/like/${id}`;
         break;
       case 'share':
-        endpoint = `${BACKEND_URL}/api/news/share/${id}`;
+        endpoint = `${getBackendUrl()}/api/news/share/${id}`;
         break;
       default:
         return NextResponse.json({
@@ -139,7 +133,10 @@ export async function POST(request: NextRequest) {
     });
     
     const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
     
   } catch (error) {
     console.error('POST API error:', error);
