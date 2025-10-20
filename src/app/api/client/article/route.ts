@@ -1,59 +1,52 @@
-// frontend/src/app/api/client/article/route.ts
+// frontend/src/app/api/articles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
-
-const cleanSlug = (rawSlug: string): string | null => {
-    if (!rawSlug) return null;
-    let cleaned = rawSlug.trim().replace(/^-+|-+$/g, '');
-    const pathParts = cleaned.split('/');
-    if (pathParts.length > 1) {
-        cleaned = pathParts[pathParts.length - 1]!;
-    }
-    cleaned = cleaned.trim().replace(/^-+|-+$/g, '');
-    return cleaned || null;
-};
+import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const rawSlug = searchParams.get('slug');
+    let slug = searchParams.get('slug');
     
-    if (!rawSlug) {
+    console.log('=== ARTICLE ROUTE DEBUG ===');
+    console.log('Received raw slug:', slug);
+    console.log('Backend URL:', getBackendUrl());
+    
+    if (!slug) {
+      console.log('ERROR: No slug provided');
       return NextResponse.json({ 
         success: false, 
         message: 'Article slug is required' 
       }, { status: 400 });
     }
 
-    const slug = cleanSlug(rawSlug);
+    // Clean up slug
+    slug = slug.trim().replace(/^-+|-+$/g, '');
+    console.log('Cleaned slug:', slug);
     
     if (!slug) {
+      console.log('ERROR: Slug is empty after cleaning');
       return NextResponse.json({ 
         success: false, 
         message: 'Invalid article slug' 
       }, { status: 400 });
     }
 
+    // Build backend URL
     const backendUrl = `${getBackendUrl()}/api/articles/${encodeURIComponent(slug)}`;
+    console.log('Calling backend URL:', backendUrl);
     
-    const headers = new Headers({
-        'Content-Type': 'application/json',
-    });
-    if (request.headers.has('authorization')) {
-        headers.set('Authorization', request.headers.get('authorization')!);
-    }
-    if (request.headers.has('cookie')) {
-        headers.set('Cookie', request.headers.get('cookie')!);
-    }
-
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: headers,
+      headers: buildBackendHeaders(request),
+      credentials: 'include',
       cache: 'no-cache'
     });
 
+    console.log('Backend response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.log('Backend error response:', errorText);
       
       if (response.status === 404) {
         return NextResponse.json({
@@ -70,13 +63,32 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    const nextResponse = NextResponse.json(data);
-    
-    forwardCookies(response, nextResponse);
+    console.log('Backend data received successfully');
+
+    const nextResponse = NextResponse.json({
+      success: true,
+      article: data.article,
+      related_articles: data.related_articles || [],
+      comments: data.comments || []
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+
+    // Forward cookies from backend
+    const cookies = forwardCookies(response);
+    cookies.forEach(cookie => {
+      nextResponse.headers.append('Set-Cookie', cookie);
+    });
+
     return nextResponse;
 
   } catch (error) {
-    console.error('Article route error:', error);
+    console.error('=== ARTICLE ROUTE ERROR ===');
+    console.error('Error details:', error);
     
     return NextResponse.json({
       success: false,
@@ -89,14 +101,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, slug: rawSlug, ...otherData } = body;
-    
-    const slug = cleanSlug(rawSlug);
+    const { action, slug, ...otherData } = body;
+
+    console.log('=== ARTICLE POST DEBUG ===');
+    console.log('Action:', action);
+    console.log('Slug:', slug);
 
     if (!action || !slug) {
       return NextResponse.json({
         success: false,
-        message: 'Action and a valid slug are required'
+        message: 'Action and slug are required'
       }, { status: 400 });
     }
 
@@ -115,39 +129,38 @@ export async function POST(request: NextRequest) {
           message: 'Invalid action'
         }, { status: 400 });
     }
-    
-    const headers = new Headers({
-        'Content-Type': 'application/json',
-    });
-    if (request.headers.has('authorization')) {
-        headers.set('Authorization', request.headers.get('authorization')!);
-    }
-    if (request.headers.has('cookie')) {
-        headers.set('Cookie', request.headers.get('cookie')!);
-    }
+
+    console.log('Calling backend endpoint:', endpoint);
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: headers,
+      headers: buildBackendHeaders(request),
+      credentials: 'include',
       body: JSON.stringify(otherData)
     });
 
-    try {
-        const data = await response.json();
-        const nextResponse = NextResponse.json(data, { status: response.status });
-        
-        forwardCookies(response, nextResponse);
-        return nextResponse;
-    } catch {
-        return NextResponse.json({
-            success: false,
-            message: `Backend action failed with status ${response.status}`,
-            error: response.statusText
-        }, { status: response.status });
-    }
+    const data = await response.json();
+    
+    const nextResponse = NextResponse.json(data, { 
+      status: response.status,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+
+    // Forward cookies from backend
+    const cookies = forwardCookies(response);
+    cookies.forEach(cookie => {
+      nextResponse.headers.append('Set-Cookie', cookie);
+    });
+
+    return nextResponse;
 
   } catch (error) {
-    console.error('Article POST error:', error);
+    console.error('=== ARTICLE POST ERROR ===');
+    console.error('Error details:', error);
     
     return NextResponse.json({
       success: false,
