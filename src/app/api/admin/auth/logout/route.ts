@@ -1,19 +1,12 @@
+// frontend/src/app/api/admin/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const getBackendUrl = () => {
-  return process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
-};
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl = getBackendUrl();
     const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('Frontend logout request - has cookies:', !!requestCookies);
-    
-    const response = await fetch(`${backendUrl}/api/admin/auth/logout`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,7 +30,6 @@ export async function POST(request: NextRequest) {
       };
     } catch (parseError) {
       console.error('Failed to parse logout response:', parseError);
-      // Even if parsing fails, treat as successful logout
       data = {
         success: true,
         authenticated: false,
@@ -48,39 +40,13 @@ export async function POST(request: NextRequest) {
       };
     }
     
-    console.log('Backend logout response:', { 
-      status: response.status, 
-      success: data.success
-    });
-    
-    // Create response - always return 200 for logout
     const nextResponse = NextResponse.json(data, { status: 200 });
-
-    // Forward cookie clearing headers from backend
-    const setCookieHeaders = response.headers.getSetCookie?.();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      console.log('Forwarding cookie clearing headers');
-      setCookieHeaders.forEach((cookie, index) => {
-        if (index === 0) {
-          nextResponse.headers.set('Set-Cookie', cookie);
-        } else {
-          nextResponse.headers.append('Set-Cookie', cookie);
-        }
-      });
-    }
-
-    // Also handle single Set-Cookie header
-    const singleSetCookie = response.headers.get('set-cookie');
-    if (singleSetCookie && (!setCookieHeaders || setCookieHeaders.length === 0)) {
-      console.log('Forwarding single cookie clearing header');
-      nextResponse.headers.set('Set-Cookie', singleSetCookie);
-    }
+    forwardCookies(response, nextResponse);
 
     return nextResponse;
 
   } catch (error) {
     console.error('Frontend logout API error:', error);
-    // Even on error, return successful logout response
     return NextResponse.json({
       success: true,
       authenticated: false,
