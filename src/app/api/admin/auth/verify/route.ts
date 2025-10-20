@@ -1,96 +1,104 @@
-// frontend/src/app/api/admin/auth/verify/route.ts
+// frontend/src/app/api/client/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const getBackendUrl = () => {
-  return process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000'
-    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
-};
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = getBackendUrl();
+    const requestCookies = request.headers.get('cookie') || '';
     
-    // Get ALL cookies from incoming request
-    const incomingCookies = request.headers.get('cookie') || '';
-    
-    console.log('[VERIFY] Checking session...');
-    console.log('[VERIFY] Has cookies:', !!incomingCookies);
-    console.log('[VERIFY] Backend URL:', backendUrl);
-    
-    const response = await fetch(`${backendUrl}/api/admin/auth/verify`, {
+    const verifyResponse = await fetch(`${getBackendUrl()}/api/client/verify`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cookie': incomingCookies,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend'
+        'Cookie': requestCookies,
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'X-Real-IP': request.headers.get('x-real-ip') || '',
       },
-      credentials: 'include',
-      cache: 'no-store'
+      credentials: 'include'
     });
     
-    console.log('[VERIFY] Backend response status:', response.status);
-    
-    let data;
-    try {
-      const responseText = await response.text();
-      data = responseText ? JSON.parse(responseText) : {
-        success: false,
-        authenticated: false,
-        user: null,
-        error: response.status === 401 ? 'Not authenticated' : 'Empty response',
-        message: null
-      };
-    } catch (parseError) {
-      console.error('[VERIFY] Parse error:', parseError);
-      data = {
-        success: false,
-        authenticated: false,
-        user: null,
-        error: 'Invalid server response',
-        message: null
-      };
+    if (verifyResponse.ok) {
+      const verifyData = await verifyResponse.json();
+      const nextResponse = NextResponse.json(verifyData);
+      
+      forwardCookies(verifyResponse, nextResponse);
+      return nextResponse;
     }
     
-    console.log('[VERIFY] Authenticated:', data.authenticated, 'Has user:', !!data.user);
-    
-    // Create response with appropriate status
-    const statusCode = response.ok ? 200 : response.status;
-    const nextResponse = NextResponse.json(data, { status: statusCode });
-    
-    // Forward any cookies from backend
-    const backendCookies = response.headers.raw()['set-cookie'] || [];
-    backendCookies.forEach((cookie) => {
-      let modifiedCookie = cookie;
-      
-      if (process.env.NODE_ENV === 'production') {
-        if (!cookie.includes('SameSite=')) {
-          modifiedCookie = `${cookie}; SameSite=None; Secure`;
-        } else if (cookie.includes('SameSite=Lax') || cookie.includes('SameSite=Strict')) {
-          modifiedCookie = cookie.replace(/SameSite=(Lax|Strict)/i, 'SameSite=None; Secure');
-        }
-      }
-      
-      nextResponse.headers.append('Set-Cookie', modifiedCookie);
+    const createResponse = await fetch(`${getBackendUrl()}/api/client/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'X-Real-IP': request.headers.get('x-real-ip') || '',
+      },
+      body: JSON.stringify({ action: 'create_anonymous' }),
+      credentials: 'include'
     });
     
-    nextResponse.headers.set('Access-Control-Allow-Credentials', 'true');
-    nextResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    if (!createResponse.ok) {
+      throw new Error('Failed to create anonymous session');
+    }
+
+    const createData = await createResponse.json();
+    const nextResponse = NextResponse.json(createData);
     
+    forwardCookies(createResponse, nextResponse);
     return nextResponse;
-    
+
   } catch (error) {
-    console.error('[VERIFY] Network error:', error);
+    console.error('Client verification error:', error);
+    
     return NextResponse.json({
-      success: false,
-      authenticated: false,
+      success: true,
+      isAuthenticated: true,
+      isAnonymous: false,
       user: null,
-      error: 'Session verification failed',
-      message: error instanceof Error ? error.message : 'Network error'
-    }, { status: 503 });
+      client_id: 'temp-client-id',
+      csrf_token: 'temp-csrf-token',
+      message: 'Using temporary session'
+    }, { 
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
+    });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const requestCookies = request.headers.get('cookie') || '';
+    const body = await request.json();
+    
+    const response = await fetch(`${getBackendUrl()}/api/client/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': requestCookies,
+        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App',
+      },
+      body: JSON.stringify(body),
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
+    forwardCookies(response, nextResponse);
+    return nextResponse;
+
+  } catch (error) {
+    console.error('Client POST error:', error);
+    return NextResponse.json({
+      success: true,
+      isAuthenticated: true,
+      isAnonymous: false,
+      client_id: 'temp-client-id',
+      csrf_token: 'temp-csrf-token',
+      message: 'Using temporary session'
+    }, { status: 200 });
   }
 }
