@@ -1,6 +1,5 @@
-// frontend/src/app/api/articles/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
     
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request),
       credentials: 'include',
       cache: 'no-cache'
     });
@@ -79,10 +78,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Forward cookies from backend
-    const cookies = forwardCookies(response);
-    cookies.forEach(cookie => {
-      nextResponse.headers.append('Set-Cookie', cookie);
-    });
+    forwardCookies(response, nextResponse);
 
     return nextResponse;
 
@@ -134,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request, { 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(otherData)
     });
@@ -151,10 +147,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Forward cookies from backend
-    const cookies = forwardCookies(response);
-    cookies.forEach(cookie => {
-      nextResponse.headers.append('Set-Cookie', cookie);
-    });
+    forwardCookies(response, nextResponse);
 
     return nextResponse;
 
