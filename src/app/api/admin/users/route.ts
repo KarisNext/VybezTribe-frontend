@@ -1,4 +1,4 @@
-// frontend/src/app/api/admin/users/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request),
       credentials: 'include'
     });
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${getBackendUrl()}/api/admin/users`, {
       method: 'POST',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
@@ -184,7 +184,7 @@ export async function PUT(request: NextRequest) {
 
     const response = await fetch(`${getBackendUrl()}/api/admin/users?id=${id.trim()}`, {
       method: 'PUT',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request, { 'Content-Type': 'application/json' }),
       body: JSON.stringify(cleanBody),
       credentials: 'include'
     });
@@ -223,7 +223,7 @@ export async function DELETE(request: NextRequest) {
 
     const response = await fetch(`${getBackendUrl()}/api/admin/users?id=${id.trim()}`, {
       method: 'DELETE',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request),
       credentials: 'include'
     });
 
