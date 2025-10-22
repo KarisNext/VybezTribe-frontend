@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
-const getBackendUrl = () => {
-  return process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000'
-    : 'https://vybeztribe.com';
-};
 
 export async function GET(request: NextRequest) {
   try {
