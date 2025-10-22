@@ -1,6 +1,5 @@
-// frontend/src/app/api/admin/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +8,7 @@ export async function GET(request: NextRequest) {
     
     const response = await fetch(`${getBackendUrl()}/api/retrieve?${queryString}`, {
       method: 'GET',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request),
       credentials: 'include'
     });
 
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
     
     const response = await fetch(`${getBackendUrl()}/api/actions`, {
       method: 'POST',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request, { 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(body)
     });
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
     const nextResponse = NextResponse.json(data, { 
-      status: response.status 
+      status: response.status
     });
     
     forwardCookies(response, nextResponse);
@@ -99,7 +98,7 @@ export async function DELETE(request: NextRequest) {
     
     const response = await fetch(`${getBackendUrl()}/api/retrieve?id=${id}`, {
       method: 'DELETE',
-      headers: buildBackendHeaders(request),
+      headers: buildHeadersFromRequest(request, { 'Content-Type': 'application/json' }),
       credentials: 'include',
       body: JSON.stringify(body)
     });
@@ -112,7 +111,7 @@ export async function DELETE(request: NextRequest) {
 
     const data = await response.json();
     const nextResponse = NextResponse.json(data, { 
-      status: response.status 
+      status: response.status
     });
     
     forwardCookies(response, nextResponse);
