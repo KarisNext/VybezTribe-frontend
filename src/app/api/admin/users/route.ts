@@ -1,6 +1,7 @@
 // frontend/src/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
+
 
 export async function GET(request: NextRequest) {
   try {
