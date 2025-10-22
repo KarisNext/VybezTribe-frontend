@@ -1,3 +1,4 @@
+
 // src/app/api/admin/edit/[id]/route.ts - CLEANED AND CORRECTED CODE
 
 import { NextRequest, NextResponse } from 'next/server';
