@@ -1,33 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest) {
   try {
     const backendUrl = getBackendUrl();
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
-    const requestCookies = request.headers.get('cookie') || '';
+    
+    // 1. Construct the full backend endpoint
+    const endpoint = `${backendUrl}/api/client/gallery?${queryString}`;
 
-    const response = await fetch(`${backendUrl}/api/client/gallery?${queryString}`, {
+    const response = await fetch(endpoint, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'Unknown'
-      },
+      // 2. Use the central utility to build headers, including cookies
+      headers: buildHeadersFromRequest(request),
       credentials: 'include'
     });
 
     if (!response.ok) {
-      return NextResponse.json({
-        success: false,
-        message: 'Gallery unavailable'
-      }, { status: response.status });
+      // Attempt to parse error data if available
+      let errorData = { success: false, message: 'Gallery unavailable' };
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // Fallback for non-JSON errors
+        errorData.message = `Backend responded with status: ${response.status}`;
+      }
+      
+      return NextResponse.json(errorData, { status: response.status });
     }
 
     const data = await response.json();
     
-    return NextResponse.json({
+    const nextResponse = NextResponse.json({
       success: true,
       gallery_news: data.gallery_news || [],
       pagination: data.pagination || {
@@ -40,11 +45,17 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // 3. Use the central utility to forward cookies back to the client
+    forwardCookies(response, nextResponse);
+    
+    return nextResponse;
+
   } catch (error) {
-    console.error('Client gallery error:', error);
+    console.error('Client gallery API error:', error);
     return NextResponse.json({
       success: false,
-      message: 'Internal server error'
+      message: 'Failed to fetch gallery data',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
