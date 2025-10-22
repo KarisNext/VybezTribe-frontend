@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
+
 interface RouteParams {
   params: {
     id: string;
