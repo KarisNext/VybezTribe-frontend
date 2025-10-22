@@ -1,17 +1,6 @@
 // frontend/src/app/api/categories/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const getBackendUrl = () => {
-  return process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:5000'
-    : process.env.BACKEND_URL || 'https://vybeztribe-backend.onrender.com';
-};
-
-interface RouteParams {
-  params: {
-    slug: string;
-  };
-}
+import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
