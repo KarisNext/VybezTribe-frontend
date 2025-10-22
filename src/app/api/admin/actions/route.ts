@@ -1,9 +1,6 @@
 // File: frontend/src/app/api/admin/actions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://vybeztribe.com' 
-  : 'http://localhost:5000';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
 
 // POST - Handle bulk actions
 export async function POST(request: NextRequest) {
