@@ -1,6 +1,11 @@
-// frontend/src/app/api/categories/[slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildBackendHeaders } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
+
+interface RouteParams {
+  params: {
+    slug: string;
+  };
+}
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -25,7 +30,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     const queryString = queryParams.toString();
-    const requestCookies = request.headers.get('cookie') || '';
     
     console.log('[CATEGORY] Fetching:', slug, 'type:', queryParams.get('type'));
     
@@ -34,13 +38,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     const response = await fetch(endpoint, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cookie': requestCookies,
-        'Origin': request.headers.get('origin') || 'https://vybeztribe.com',
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-App'
-      },
+      // Using the standard header utility for consistency and cookie forwarding
+      headers: buildHeadersFromRequest(request),
       credentials: 'include',
       cache: 'no-store'
     });
@@ -59,11 +58,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const data = await response.json();
     const nextResponse = NextResponse.json(data);
     
-    // Forward cookies
-    const backendCookies = response.headers.raw()['set-cookie'] || [];
-    backendCookies.forEach((cookie) => {
-      nextResponse.headers.append('Set-Cookie', cookie);
-    });
+    // Forward cookies using the utility function
+    forwardCookies(response, nextResponse);
     
     return nextResponse;
     
