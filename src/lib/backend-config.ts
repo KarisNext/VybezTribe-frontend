@@ -1,3 +1,6 @@
+
+// frontend/src/lib/backend-config.ts - UPGRADED CONTENT
+
 /**
  * ===============================================================
  * VybezTribe Backend Configuration Library
@@ -5,14 +8,14 @@
  * This module defines how the frontend determines and communicates
  * with the backend API — both locally and in production on Render.
  * It ensures:
- *   ✅ Seamless environment detection (local, staging, production)
- *   ✅ Secure, consistent URL construction
- *   ✅ Cookie + session forwarding
- *   ✅ Centralized fetch configuration and headers
+ * ✅ Seamless environment detection (local, staging, production)
+ * ✅ Secure, consistent URL construction
+ * ✅ Cookie + session forwarding
+ * ✅ Centralized fetch configuration and headers
  * ===============================================================
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /* ---------------------------------------------------------------
  * 1. Environment & Base URL Logic
@@ -21,14 +24,9 @@ import { NextResponse } from 'next/server';
 /**
  * Dynamically determines the correct backend base URL
  * Priority:
- *   1. Environment variable NEXT_PUBLIC_BACKEND_URL
- *   2. NODE_ENV === 'development' → localhost:5000
- *   3. Production fallback → https://www.vybeztribe.com
- * 
- * Example expected values:
- *   - Local:      http://localhost:5000
- *   - Render App: https://www.vybeztribe.com
- *   - Staging:    https://staging.vybeztribe.com (if used)
+ * 1. Environment variable NEXT_PUBLIC_BACKEND_URL
+ * 2. NODE_ENV === 'development' → localhost:5000
+ * 3. Production fallback → https://www.vybeztribe.com
  */
 export const getBackendUrl = (): string => {
   // Highest priority — explicit environment variable
@@ -46,7 +44,78 @@ export const getBackendUrl = (): string => {
 };
 
 /* ---------------------------------------------------------------
- * 2. Cookie Forwarding
+ * 2. Header Builders
+ * --------------------------------------------------------------- */
+
+/**
+ * Defines a standard set of headers for all backend communications.
+ */
+const BASE_HEADERS: HeadersInit = {
+  'User-Agent': 'VybezTribe-Frontend/1.0',
+  'Accept': 'application/json',
+};
+
+/**
+ * Builds a Headers object by merging base headers with optional additional headers.
+ * @param additionalHeaders Custom headers to include/override.
+ * @returns A standard Headers object.
+ */
+export const getStandardHeaders = (additionalHeaders?: Record<string, string>): Headers => {
+  const headers = new Headers(BASE_HEADERS);
+
+  if (additionalHeaders) {
+    Object.entries(additionalHeaders).forEach(([key, value]) => {
+      // Only set if the value is not undefined or empty
+      if (value !== undefined && value !== '') {
+        headers.set(key, value);
+      }
+    });
+  }
+
+  return headers;
+};
+
+/**
+ * Builds headers for the backend request by extracting relevant headers
+ * (like Authorization, Cookies, etc.) from the incoming NextRequest
+ * and merging them with standard base headers.
+ *
+ * This is the FIX for the type error.
+ *
+ * @param request The incoming NextRequest object.
+ * @param additionalHeaders Custom headers to include/override.
+ * @returns A standard Headers object ready for the fetch call.
+ */
+export const buildHeadersFromRequest = (
+  request: NextRequest,
+  additionalHeaders?: Record<string, string>
+): Headers => {
+  const headers = getStandardHeaders(additionalHeaders);
+
+  // 💡 Strategy: Forward crucial headers from the client to the backend API.
+  // This is vital for authorization (Bearer tokens) and session management (Cookies).
+  const headersToForward = ['authorization', 'cookie'];
+
+  headersToForward.forEach(headerKey => {
+    const value = request.headers.get(headerKey);
+    if (value) {
+      // Use append for 'cookie' to ensure all cookies are sent if combined.
+      // Use set for 'authorization' as it's typically a single token.
+      if (headerKey === 'cookie') {
+        headers.append(headerKey, value);
+      } else {
+        headers.set(headerKey, value);
+      }
+    }
+  });
+
+  return headers;
+};
+
+// Removed `buildBackendHeaders` alias as it was misleading and is replaced by `getStandardHeaders` and `buildHeadersFromRequest`
+
+/* ---------------------------------------------------------------
+ * 3. Cookie Forwarding
  * --------------------------------------------------------------- */
 
 /**
@@ -58,6 +127,7 @@ export const forwardCookies = (backendResponse: Response, nextResponse: NextResp
   const setCookieHeader = backendResponse.headers.get('set-cookie');
   if (setCookieHeader) {
     // Split multiple cookies correctly (Render & Express may combine them)
+    // The regex splits by a comma that is followed by optional whitespace and then a valid cookie name character.
     const cookies = setCookieHeader.split(/,(?=\s*[a-zA-Z0-9_\-]+=)/);
     cookies.forEach(cookie => {
       nextResponse.headers.append('set-cookie', cookie);
@@ -66,64 +136,43 @@ export const forwardCookies = (backendResponse: Response, nextResponse: NextResp
 };
 
 /* ---------------------------------------------------------------
- * 3. Header Builders
- * --------------------------------------------------------------- */
-
-/**
- * Builds a clean set of headers with optional overrides.
- * Default headers include JSON acceptance and a unique User-Agent.
- */
-export const getDefaultHeaders = (additionalHeaders?: Record<string, string>): HeadersInit => {
-  const baseHeaders: Record<string, string> = {
-    'User-Agent': 'VybezTribe-Frontend/1.0',
-    'Accept': 'application/json',
-    ...additionalHeaders
-  };
-
-  // Remove undefined or empty headers
-  Object.keys(baseHeaders).forEach(key => {
-    if (baseHeaders[key] === undefined || baseHeaders[key] === '') {
-      delete baseHeaders[key];
-    }
-  });
-
-  return baseHeaders;
-};
-
-/**
- * Alias for backward compatibility
- */
-export const buildBackendHeaders = getDefaultHeaders;
-
-/* ---------------------------------------------------------------
  * 4. Fetch Configuration Helpers
  * --------------------------------------------------------------- */
 
 /**
- * Returns standard fetch options with cookie inclusion and
- * no caching (for dynamic authenticated data).
+ * Returns standard fetch options with common defaults.
+ * @param headers Headers to use for the request.
  */
-export const getDefaultFetchOptions = (
+const BASE_FETCH_OPTIONS: RequestInit = {
+  credentials: 'include',    // 🔒 Important for session cookies
+  cache: 'no-store',         // 🚫 Prevent stale data for dynamic/authenticated data
+};
+
+/**
+ * Returns standard fetch options with cookie inclusion and no caching.
+ */
+export const buildDefaultFetchOptions = (
   method: string = 'GET',
-  additionalHeaders?: Record<string, string>,
+  headers: HeadersInit = getStandardHeaders(),
   body?: BodyInit
 ): RequestInit => ({
   method,
-  headers: getDefaultHeaders(additionalHeaders),
-  credentials: 'include',   // 🔒 Important for session cookies
-  cache: 'no-store',        // 🚫 Prevent stale data
+  headers,
+  ...BASE_FETCH_OPTIONS,
   ...(body && { body })
 });
 
+
 /**
  * Builds full configuration for backend requests with a JSON body.
+ * NOTE: This assumes the headers are passed in explicitly or generated elsewhere.
  */
-export const buildBackendFetchConfig = (
+export const buildJsonFetchConfig = (
   method: string = 'GET',
   body?: any,
   customHeaders?: Record<string, string>
 ): RequestInit => {
-  const headers = buildBackendHeaders({
+  const headers = getStandardHeaders({
     'Content-Type': 'application/json',
     ...customHeaders
   });
@@ -131,8 +180,7 @@ export const buildBackendFetchConfig = (
   return {
     method,
     headers,
-    credentials: 'include',
-    cache: 'no-store',
+    ...BASE_FETCH_OPTIONS,
     ...(body && { body: JSON.stringify(body) })
   };
 };
@@ -142,9 +190,10 @@ export const buildBackendFetchConfig = (
  * --------------------------------------------------------------- */
 
 /**
- * Makes a backend request safely with automatic error reporting.
- * This standardizes error logging and ensures every request is
- * routed to the correct environment’s backend.
+ * Makes a backend request safely with automatic error reporting,
+ * using the standard fetch options.
+ * This is primarily for requests not originating from an API Route
+ * that needs to forward cookies (e.g., server components, utility calls).
  */
 export const makeBackendRequest = async (
   endpoint: string,
@@ -153,10 +202,17 @@ export const makeBackendRequest = async (
   const backendUrl = getBackendUrl();
   const url = `${backendUrl}${endpoint}`;
 
+  // Merge default headers with any custom headers provided in options
+  const defaultOptions: RequestInit = buildDefaultFetchOptions(
+    options.method,
+    getStandardHeaders(options.headers as Record<string, string>) // Ensure custom headers are merged
+  );
+
   try {
     const response = await fetch(url, {
-      ...getDefaultFetchOptions(),
-      ...options
+      ...defaultOptions,
+      ...options,
+      headers: defaultOptions.headers // Ensure merged headers take precedence
     });
 
     // Debugging in development mode only
@@ -192,4 +248,3 @@ export const logEnvironmentInfo = (): void => {
 if (process.env.NODE_ENV === 'development') {
   logEnvironmentInfo();
 }
-
