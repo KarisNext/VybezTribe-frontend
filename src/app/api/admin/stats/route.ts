@@ -1,6 +1,7 @@
 // frontend/src/app/api/admin/stats/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
+
 
 // GET - Retrieve comprehensive statistics
 export async function GET(request: NextRequest) {
