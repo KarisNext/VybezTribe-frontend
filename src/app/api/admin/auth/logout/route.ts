@@ -1,59 +1,42 @@
-// frontend/src/app/api/admin/logout/route.ts
+// frontend/src/app/api/admin/auth/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
+import { getBackendUrl } from '@/lib/backend-config';
 
 export async function POST(request: NextRequest) {
   try {
     const requestCookies = request.headers.get('cookie') || '';
+    
+    console.log('Admin logout - forwarding to backend');
     
     const response = await fetch(`${getBackendUrl()}/api/admin/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cookie': requestCookies,
-        'User-Agent': request.headers.get('user-agent') || 'VybezTribe-Frontend',
-        'X-CSRF-Token': request.headers.get('x-csrf-token') || ''
       },
       credentials: 'include'
     });
-
-    let data;
-    try {
-      const responseText = await response.text();
-      data = responseText ? JSON.parse(responseText) : {
-        success: true,
-        authenticated: false,
-        user: null,
-        csrf_token: null,
-        error: null,
-        message: 'Logout completed'
-      };
-    } catch (parseError) {
-      console.error('Failed to parse logout response:', parseError);
-      data = {
-        success: true,
-        authenticated: false,
-        user: null,
-        csrf_token: null,
-        error: null,
-        message: 'Logout completed'
-      };
-    }
     
-    const nextResponse = NextResponse.json(data, { status: 200 });
-    forwardCookies(response, nextResponse);
-
+    const data = await response.json();
+    const nextResponse = NextResponse.json(data, { 
+      status: response.status 
+    });
+    
+    // Clear the admin session cookie
+    nextResponse.cookies.delete('vybeztribe_admin_session');
+    
     return nextResponse;
-
   } catch (error) {
-    console.error('Frontend logout API error:', error);
-    return NextResponse.json({
+    console.error('Admin logout error:', error);
+    
+    // Even on error, return success to clear frontend state
+    const nextResponse = NextResponse.json({
       success: true,
-      authenticated: false,
-      user: null,
-      csrf_token: null,
-      error: null,
-      message: 'Logout completed (with errors)'
-    }, { status: 200 });
+      message: 'Logged out'
+    });
+    
+    nextResponse.cookies.delete('vybeztribe_admin_session');
+    
+    return nextResponse;
   }
 }
