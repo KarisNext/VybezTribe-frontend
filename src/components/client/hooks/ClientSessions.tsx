@@ -66,8 +66,34 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
     }
   }, []);
 
+  const createAnonymousSession = useCallback(async () => {
+    try {
+      console.log('Creating anonymous session...');
+      
+      const response = await fetch('/api/client/auth/anonymous', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        handleSessionResponse(data);
+        console.log('Anonymous session created successfully');
+        return true;
+      } else {
+        console.error('Failed to create anonymous session:', response.status);
+        return false;
+      }
+    } catch (err) {
+      console.error('Error creating anonymous session:', err);
+      return false;
+    }
+  }, [handleSessionResponse]);
+
   const checkSession = useCallback(async (isInitialCheck: boolean = false) => {
-    // Prevent multiple simultaneous checks
     if (isLoading && !isInitialCheck) return;
     
     try {
@@ -78,23 +104,25 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
       
       console.log('Checking client session...');
       
-      const response = await fetch('/api/client/verify', {
+      const response = await fetch('/api/client/auth/verify', {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-        },
-        // Add cache busting to prevent stale responses
-        next: { revalidate: 0 }
+          'Cache-Control': 'no-cache',
+        }
       });
       
       if (response.ok) {
         const data = await response.json();
         handleSessionResponse(data);
         console.log('Client session verified');
+      } else if (response.status === 401 && isInitialCheck) {
+        // No session exists, create anonymous session on initial check only
+        console.log('No session found, creating anonymous session...');
+        await createAnonymousSession();
       } else {
         console.log('Session check failed with status:', response.status);
-        // Don't try to create session automatically - let the API handle it
         setIsAuthenticated(false);
         setIsAnonymous(true);
         setError('Session check failed');
@@ -104,13 +132,18 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
       setError('Network error during session check');
       setIsAuthenticated(false);
       setIsAnonymous(true);
+      
+      // Try to create anonymous session on network error during initial check
+      if (isInitialCheck) {
+        await createAnonymousSession();
+      }
     } finally {
       if (isInitialCheck) {
         setIsLoading(false);
         setInitialCheckDone(true);
       }
     }
-  }, [handleSessionResponse, isLoading]);
+  }, [handleSessionResponse, isLoading, createAnonymousSession]);
 
   const refreshSession = useCallback(async () => {
     console.log('Refreshing client session...');
@@ -124,18 +157,6 @@ export const ClientSessionProvider = ({ children }: { children: ReactNode }) => 
       checkSession(true);
     }
   }, [checkSession, initialCheckDone]);
-
-  // Remove the periodic refresh for now until we fix the core issue
-  // useEffect(() => {
-  //   if (!isAuthenticated) return;
-    
-  //   const interval = setInterval(() => {
-  //     console.log('Periodic session refresh...');
-  //     checkSession(false);
-  //   }, 10 * 60 * 1000);
-
-  //   return () => clearInterval(interval);
-  // }, [isAuthenticated, checkSession]);
 
   const value: ClientSessionContextType = {
     isAuthenticated,
