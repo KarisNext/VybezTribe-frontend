@@ -6,9 +6,11 @@ export async function POST(request: NextRequest) {
   try {
     const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('Admin logout - forwarding to backend');
+    console.log('🚪 Admin logout API - forwarding to backend');
     
-    const response = await fetch(`${getBackendUrl()}/api/admin/auth/logout`, {
+    const backendUrl = `${getBackendUrl()}/api/admin/auth/logout`;
+    
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,24 +20,27 @@ export async function POST(request: NextRequest) {
     });
     
     const data = await response.json();
-    const nextResponse = NextResponse.json(data, { 
-      status: response.status 
-    });
+    const nextResponse = NextResponse.json(data, { status: response.status });
     
-    // Clear the admin session cookie
-    nextResponse.cookies.delete('vybeztribe_admin_session');
+    // Clear admin session cookie
+    nextResponse.cookies.set('vybeztribe_admin_session', '', {
+      maxAge: 0,
+      path: '/'
+    });
     
     return nextResponse;
   } catch (error) {
-    console.error('Admin logout error:', error);
+    console.error('❌ Admin logout API error:', error);
     
-    // Even on error, return success to clear frontend state
     const nextResponse = NextResponse.json({
       success: true,
       message: 'Logged out'
     });
     
-    nextResponse.cookies.delete('vybeztribe_admin_session');
+    nextResponse.cookies.set('vybeztribe_admin_session', '', {
+      maxAge: 0,
+      path: '/'
+    });
     
     return nextResponse;
   }
