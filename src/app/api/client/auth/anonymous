@@ -6,9 +6,12 @@ export async function POST(request: NextRequest) {
   try {
     const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('Creating anonymous session via Next.js API route');
+    console.log('👤 Client anonymous API - creating session');
     
-    const response = await fetch(`${getBackendUrl()}/api/client/auth/anonymous`, {
+    const backendUrl = `${getBackendUrl()}/api/client/auth/anonymous`;
+    console.log('Backend URL:', backendUrl);
+    
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,17 +21,18 @@ export async function POST(request: NextRequest) {
       credentials: 'include'
     });
     
-    const data = await response.json();
-    const nextResponse = NextResponse.json(data, { 
-      status: response.status 
-    });
+    console.log('📡 Anonymous session response:', response.status);
     
-    // Forward cookies from backend
+    const data = await response.json();
+    console.log('Session data:', { success: data.success, hasClientId: !!data.client_id });
+    
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
     forwardCookies(response, nextResponse);
     
     return nextResponse;
   } catch (error) {
-    console.error('Anonymous session creation error:', error);
+    console.error('❌ Client anonymous API error:', error);
     
     return NextResponse.json({
       success: false,
@@ -37,9 +41,7 @@ export async function POST(request: NextRequest) {
       user: null,
       client_id: null,
       csrf_token: null,
-      message: 'Session creation failed'
-    }, { 
-      status: 500 
-    });
+      message: error instanceof Error ? error.message : 'Session creation failed'
+    }, { status: 500 });
   }
 }
