@@ -6,9 +6,12 @@ export async function GET(request: NextRequest) {
   try {
     const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('Admin verify - checking session');
+    console.log('🔍 Admin verify API - checking session');
     
-    const response = await fetch(`${getBackendUrl()}/api/admin/auth/verify`, {
+    const backendUrl = `${getBackendUrl()}/api/admin/auth/verify`;
+    console.log('Backend URL:', backendUrl);
+    
+    const response = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -21,34 +24,31 @@ export async function GET(request: NextRequest) {
       cache: 'no-store'
     });
     
-    console.log('Backend verify response status:', response.status);
+    console.log('📡 Backend verify status:', response.status);
     
     const data = await response.json();
+    console.log('Verify data:', { success: data.success, authenticated: data.authenticated });
+    
     const nextResponse = NextResponse.json(data, { 
       status: response.status,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
     
-    // Forward cookies from backend
     forwardCookies(response, nextResponse);
     
     return nextResponse;
   } catch (error) {
-    console.error('Admin verify error:', error);
+    console.error('❌ Admin verify API error:', error);
     
     return NextResponse.json({
       success: false,
       authenticated: false,
       user: null,
       error: 'Session verification failed',
-      message: 'Network error'
+      message: error instanceof Error ? error.message : 'Network error'
     }, { 
       status: 500,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
   }
 }
