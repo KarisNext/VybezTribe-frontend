@@ -1,38 +1,39 @@
+// frontend/src/app/api/admin/auth/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
+import { getBackendUrl } from '@/lib/backend-config';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-
+    const requestCookies = request.headers.get('cookie') || '';
+    
+    console.log('🚪 Admin logout - forwarding to backend');
+    
     const response = await fetch(`${getBackendUrl()}/api/admin/auth/logout`, {
       method: 'POST',
-      headers: { cookie: cookieHeader },
-      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': requestCookies,
+      },
+      credentials: 'include'
     });
-
+    
     const data = await response.json();
-
-    const nextResponse = NextResponse.json(data, {
-      status: response.status,
-    });
-
-    forwardCookies(response, nextResponse);
-
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
+    // Clear admin session cookie
+    nextResponse.cookies.delete('vybeztribe_admin_session');
+    
     return nextResponse;
   } catch (error) {
     console.error('❌ Admin logout error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        isAuthenticated: false,
-        message: error instanceof Error ? error.message : 'Logout failed',
-      },
-      {
-        status: 500,
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-      }
-    );
+    
+    const nextResponse = NextResponse.json({
+      success: true,
+      message: 'Logged out'
+    });
+    
+    nextResponse.cookies.delete('vybeztribe_admin_session');
+    
+    return nextResponse;
   }
 }
-
