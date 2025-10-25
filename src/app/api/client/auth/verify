@@ -1,3 +1,4 @@
+
 // frontend/src/app/api/client/auth/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
