@@ -1,5 +1,3 @@
-
-// frontend/src/app/api/admin/auth/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
@@ -37,3 +35,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
