@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const requestCookies = request.headers.get('cookie') || '';
     
-    console.log('🔍 Admin verify API - checking session');
+    console.log('🔍 Admin verify - checking session');
     
     const backendUrl = `${getBackendUrl()}/api/admin/auth/verify`;
     console.log('Backend URL:', backendUrl);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     
     return nextResponse;
   } catch (error) {
-    console.error('❌ Admin verify API error:', error);
+    console.error('❌ Admin verify error:', error);
     
     return NextResponse.json({
       success: false,
