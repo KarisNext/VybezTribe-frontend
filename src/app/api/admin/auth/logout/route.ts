@@ -1,57 +1,33 @@
-// frontend/src/app/api/admin/auth/logout/route.ts
+// frontend/src/app/api/admin/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBackendUrl, forwardCookies, buildHeadersFromRequest } from '@/lib/backend-config';
+import { getBackendUrl, forwardCookies } from '@/lib/backend-config';
 
 export async function POST(request: NextRequest) {
   try {
-    // Build headers and forward cookies for admin logout
-    const headers = buildHeadersFromRequest(request, {
-      'X-CSRF-Token': request.headers.get('x-csrf-token') || '',
-    });
-
-    // FIXED: Proxy to the ADMIN logout endpoint, not client
-    const response = await fetch(`${getBackendUrl()}/api/admin/auth/logout`, {
+    const body = await request.json();
+    
+    const response = await fetch(`${getBackendUrl()}/api/admin/auth/login`, {
       method: 'POST',
-      headers: headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       credentials: 'include',
+      body: JSON.stringify(body),
     });
 
-    // Handle response text (might be empty for 204)
-    const responseText = await response.text();
-    let data;
-    
-    try {
-      data = responseText ? JSON.parse(responseText) : {
-        success: true,
-        message: 'Admin logout completed',
-        authenticated: false
-      };
-    } catch (parseError) {
-      if (response.ok) {
-        data = { 
-          success: true, 
-          message: 'Admin logout completed', 
-          authenticated: false 
-        };
-      } else {
-        throw new Error(`Admin logout failed. Status: ${response.status}. Response: ${responseText}`);
-      }
-    }
-    
-    // Prepare response and forward cookies
+    const data = await response.json();
     const nextResponse = NextResponse.json(data, { status: response.status });
+    
     forwardCookies(response, nextResponse);
     
     return nextResponse;
   } catch (error) {
-    console.error('❌ Frontend admin logout API error:', error);
-    
-    // Return graceful error to allow client-side cleanup
+    console.error('❌ Admin login error:', error);
     return NextResponse.json({
       success: false,
-      authenticated: false,
-      message: 'Admin logout failed due to network error, but attempting client side cleanup.',
-      error: error instanceof Error ? error.message : 'Unknown network error'
-    }, { status: 202 });
+      message: error instanceof Error ? error.message : 'Login failed'
+    }, { status: 500 });
   }
 }
+
+// ❌ DO NOT ADD ANOTHER `export async function POST` HERE!
